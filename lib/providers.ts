@@ -1,87 +1,54 @@
 export const PROVIDERS = {
-  "fireworks-ai": {
-    name: "Fireworks AI",
+  ollama: {
+    name: "Ollama (Local)",
     max_tokens: 131_000,
-    id: "fireworks-ai",
-  },
-  nebius: {
-    name: "Nebius AI Studio",
-    max_tokens: 131_000,
-    id: "nebius",
-  },
-  sambanova: {
-    name: "SambaNova",
-    max_tokens: 32_000,
-    id: "sambanova",
-  },
-  novita: {
-    name: "NovitaAI",
-    max_tokens: 16_000,
-    id: "novita",
-  },
-  hyperbolic: {
-    name: "Hyperbolic",
-    max_tokens: 131_000,
-    id: "hyperbolic",
-  },
-  together: {
-    name: "Together AI",
-    max_tokens: 128_000,
-    id: "together",
-  },
-  groq: {
-    name: "Groq",
-    max_tokens: 16_384,
-    id: "groq",
+    id: "ollama",
+    endpoint: process.env.OLLAMA_API_URL || "http://localhost:11434",
   },
 };
 
-export const MODELS = [
+// Default models - will be replaced by dynamic models from Ollama
+export const DEFAULT_MODELS = [
   {
-    value: "deepseek-ai/DeepSeek-V3-0324",
-    label: "DeepSeek V3 O324",
-    providers: ["fireworks-ai", "nebius", "sambanova", "novita", "hyperbolic"],
-    autoProvider: "novita",
+    value: "deepseek-v3:latest",
+    label: "DeepSeek V3",
+    providers: ["ollama"],
+    autoProvider: "ollama",
   },
   {
-    value: "deepseek-ai/DeepSeek-R1-0528",
-    label: "DeepSeek R1 0528",
-    providers: [
-      "fireworks-ai",
-      "novita",
-      "hyperbolic",
-      "nebius",
-      "together",
-      "sambanova",
-    ],
-    autoProvider: "novita",
-    isThinker: true,
+    value: "llama3.2:latest",
+    label: "Llama 3.2",
+    providers: ["ollama"],
+    autoProvider: "ollama",
   },
   {
-    value: "Qwen/Qwen3-Coder-480B-A35B-Instruct",
-    label: "Qwen3 Coder 480B A35B Instruct",
-    providers: ["novita", "hyperbolic"],
-    autoProvider: "novita",
-    isNew: true,
+    value: "qwen2.5-coder:latest",
+    label: "Qwen 2.5 Coder",
+    providers: ["ollama"],
+    autoProvider: "ollama",
   },
   {
-    value: "moonshotai/Kimi-K2-Instruct",
-    label: "Kimi K2 Instruct",
-    providers: ["together", "novita", "groq"],
-    autoProvider: "groq",
+    value: "mistral:latest",
+    label: "Mistral",
+    providers: ["ollama"],
+    autoProvider: "ollama",
   },
   {
-    value: "deepseek-ai/DeepSeek-V3.1",
-    label: "DeepSeek V3.1",
-    providers: ["fireworks-ai", "novita"],
-    isNew: true,
-    autoProvider: "fireworks-ai",
+    value: "codellama:latest",
+    label: "Code Llama",
+    providers: ["ollama"],
+    autoProvider: "ollama",
   },
-  {
-    value: "moonshotai/Kimi-K2-Instruct-0905",
-    label: "Kimi K2 Instruct 0905",
-    providers: ["together", "groq", "novita"],
-    isNew: true,
-    autoProvider: "groq"
-  }
 ];
+
+// This will be populated dynamically from the API
+export let MODELS = DEFAULT_MODELS;
+
+// Function to update models dynamically
+export const updateModels = (newModels: any[]) => {
+  MODELS = newModels.map(model => ({
+    ...model,
+    providers: ["ollama"],
+    autoProvider: "ollama",
+  }));
+};

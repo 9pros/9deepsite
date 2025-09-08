@@ -7,7 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { PROVIDERS, MODELS } from "@/lib/providers";
+import { PROVIDERS } from "@/lib/providers";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -21,6 +21,7 @@ import {
 import { useMemo } from "react";
 import { useUpdateEffect } from "react-use";
 import Image from "next/image";
+import { useOllamaModels } from "@/hooks/useOllamaModels";
 
 export function Settings({
   open,
@@ -41,15 +42,17 @@ export function Settings({
   onChange: (provider: string) => void;
   onModelChange: (model: string) => void;
 }) {
+  const { models, loading } = useOllamaModels();
+  
   const modelAvailableProviders = useMemo(() => {
-    const availableProviders = MODELS.find(
+    const availableProviders = models.find(
       (m: { value: string }) => m.value === model
     )?.providers;
     if (!availableProviders) return Object.keys(PROVIDERS);
     return Object.keys(PROVIDERS).filter((id) =>
       availableProviders.includes(id)
     );
-  }, [model]);
+  }, [model, models]);
 
   useUpdateEffect(() => {
     if (provider !== "auto" && !modelAvailableProviders.includes(provider)) {
@@ -87,8 +90,8 @@ export function Settings({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectLabel>Models</SelectLabel>
-                    {MODELS.map(
+                    <SelectLabel>{loading ? "Loading models..." : "Available Models"}</SelectLabel>
+                    {models.map(
                       ({
                         value,
                         label,
@@ -144,7 +147,7 @@ export function Settings({
                     }
                   )}
                   onClick={() => {
-                    const foundModel = MODELS.find(
+                    const foundModel = models.find(
                       (m: { value: string }) => m.value === model
                     );
                     if (provider === "auto" && foundModel?.autoProvider) {

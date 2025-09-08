@@ -2,7 +2,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { InferenceClient } from "@huggingface/inference";
 
 import { MODELS, PROVIDERS } from "@/lib/providers";
 import {
@@ -36,16 +35,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Allow any model name for Ollama since models are dynamic
   const selectedModel = MODELS.find(
     (m) => m.value === model || m.label === model
-  );
-
-  if (!selectedModel) {
-    return NextResponse.json(
-      { ok: false, error: "Invalid model selected" },
-      { status: 400 }
-    );
-  }
+  ) || {
+    value: model,
+    label: model,
+    providers: ["ollama"],
+    autoProvider: "ollama",
+  };
 
   if (!selectedModel.providers.includes(provider) && provider !== "auto") {
     return NextResponse.json(
@@ -58,40 +56,24 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let token = userToken;
-  let billTo: string | null = null;
-
-  /**
-   * Handle local usage token, this bypass the need for a user token
-   * and allows local testing without authentication.
-   * This is useful for development and testing purposes.
-   */
-  if (process.env.HF_TOKEN && process.env.HF_TOKEN.length > 0) {
-    token = process.env.HF_TOKEN;
-  }
-
+  // No authentication needed for Ollama
   const ip = authHeaders.get("x-forwarded-for")?.includes(",")
     ? authHeaders.get("x-forwarded-for")?.split(",")[1].trim()
     : authHeaders.get("x-forwarded-for");
 
-  if (!token) {
-    ipAddresses.set(ip, (ipAddresses.get(ip) || 0) + 1);
-    if (ipAddresses.get(ip) > MAX_REQUESTS_PER_IP) {
-      return NextResponse.json(
-        {
-          ok: false,
-          openLogin: true,
-          message: "Log In to continue using the service",
-        },
-        { status: 429 }
-      );
-    }
-
-    token = process.env.DEFAULT_HF_TOKEN as string;
-    billTo = "huggingface";
+  // Simple rate limiting without authentication
+  ipAddresses.set(ip, (ipAddresses.get(ip) || 0) + 1);
+  if (ipAddresses.get(ip) > MAX_REQUESTS_PER_IP) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: "Rate limit exceeded. Please wait before making more requests.",
+      },
+      { status: 429 }
+    );
   }
 
-  const DEFAULT_PROVIDER = PROVIDERS.novita;
+  const DEFAULT_PROVIDER = PROVIDERS.ollama;
   const selectedProvider =
     provider === "auto"
       ? PROVIDERS[selectedModel.autoProvider as keyof typeof PROVIDERS]
@@ -120,11 +102,15 @@ export async function POST(request: NextRequest) {
     (async () => {
       // let completeResponse = "";
       try {
-        const client = new InferenceClient(token);
-        const chatCompletion = client.chatCompletionStream(
-          {
+        // Call Ollama API
+        const ollamaEndpoint = selectedProvider.endpoint || process.env.OLLAMA_API_URL || "http://localhost:11434";
+        const ollamaResponse = await fetch(`${ollamaEndpoint}/api/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             model: selectedModel.value,
-            provider: selectedProvider.id as any,
             messages: [
               {
                 role: "system",
@@ -141,45 +127,54 @@ export async function POST(request: NextRequest) {
                   : rewrittenPrompt,
               },
             ],
-            max_tokens: selectedProvider.max_tokens,
-          },
-          billTo ? { billTo } : {}
-        );
+            stream: true,
+            options: {
+              num_predict: selectedProvider.max_tokens,
+            }
+          }),
+        });
 
+        if (!ollamaResponse.ok) {
+          throw new Error(`Ollama API error: ${ollamaResponse.statusText}`);
+        }
+
+        const reader = ollamaResponse.body?.getReader();
+        if (!reader) {
+          throw new Error('No response body from Ollama');
+        }
+
+        const decoder = new TextDecoder();
         while (true) {
-          const { done, value } = await chatCompletion.next();
-          if (done) {
-            break;
-          }
+          const { done, value } = await reader.read();
+          if (done) break;
 
-          const chunk = value.choices[0]?.delta?.content;
-          if (chunk) {
-            await writer.write(encoder.encode(chunk));
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                const json = JSON.parse(line);
+                if (json.message?.content) {
+                  await writer.write(encoder.encode(json.message.content));
+                }
+              } catch (e) {
+                // Skip invalid JSON lines
+              }
+            }
           }
         }
       } catch (error: any) {
-        if (error.message?.includes("exceeded your monthly included credits")) {
-          await writer.write(
-            encoder.encode(
-              JSON.stringify({
-                ok: false,
-                openProModal: true,
-                message: error.message,
-              })
-            )
-          );
-        } else {
-          await writer.write(
-            encoder.encode(
-              JSON.stringify({
-                ok: false,
-                message:
-                  error.message ||
-                  "An error occurred while processing your request.",
-              })
-            )
-          );
-        }
+        await writer.write(
+          encoder.encode(
+            JSON.stringify({
+              ok: false,
+              message:
+                error.message ||
+                "An error occurred while processing your request.",
+            })
+          )
+        );
       } finally {
         await writer?.close();
       }
@@ -214,62 +209,49 @@ export async function PUT(request: NextRequest) {
     );
   }
 
+  // Allow any model name for Ollama since models are dynamic
   const selectedModel = MODELS.find(
     (m) => m.value === model || m.label === model
-  );
-  if (!selectedModel) {
-    return NextResponse.json(
-      { ok: false, error: "Invalid model selected" },
-      { status: 400 }
-    );
-  }
+  ) || {
+    value: model,
+    label: model,
+    providers: ["ollama"],
+    autoProvider: "ollama",
+  };
 
-  let token = userToken;
-  let billTo: string | null = null;
-
-  /**
-   * Handle local usage token, this bypass the need for a user token
-   * and allows local testing without authentication.
-   * This is useful for development and testing purposes.
-   */
-  if (process.env.HF_TOKEN && process.env.HF_TOKEN.length > 0) {
-    token = process.env.HF_TOKEN;
-  }
-
+  // No authentication needed for Ollama
   const ip = authHeaders.get("x-forwarded-for")?.includes(",")
     ? authHeaders.get("x-forwarded-for")?.split(",")[1].trim()
     : authHeaders.get("x-forwarded-for");
 
-  if (!token) {
-    ipAddresses.set(ip, (ipAddresses.get(ip) || 0) + 1);
-    if (ipAddresses.get(ip) > MAX_REQUESTS_PER_IP) {
-      return NextResponse.json(
-        {
-          ok: false,
-          openLogin: true,
-          message: "Log In to continue using the service",
-        },
-        { status: 429 }
-      );
-    }
-
-    token = process.env.DEFAULT_HF_TOKEN as string;
-    billTo = "huggingface";
+  // Simple rate limiting without authentication
+  ipAddresses.set(ip, (ipAddresses.get(ip) || 0) + 1);
+  if (ipAddresses.get(ip) > MAX_REQUESTS_PER_IP) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: "Rate limit exceeded. Please wait before making more requests.",
+      },
+      { status: 429 }
+    );
   }
 
-  const client = new InferenceClient(token);
-
-  const DEFAULT_PROVIDER = PROVIDERS.novita;
+  const DEFAULT_PROVIDER = PROVIDERS.ollama;
   const selectedProvider =
     provider === "auto"
       ? PROVIDERS[selectedModel.autoProvider as keyof typeof PROVIDERS]
       : PROVIDERS[provider as keyof typeof PROVIDERS] ?? DEFAULT_PROVIDER;
 
   try {
-    const response = await client.chatCompletion(
-      {
+    // Call Ollama API for non-streaming completion
+    const ollamaEndpoint = selectedProvider.endpoint || process.env.OLLAMA_API_URL || "http://localhost:11434";
+    const response = await fetch(`${ollamaEndpoint}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         model: selectedModel.value,
-        provider: selectedProvider.id as any,
         messages: [
           {
             role: "system",
@@ -295,16 +277,19 @@ export async function PUT(request: NextRequest) {
             content: prompt,
           },
         ],
-        ...(selectedProvider.id !== "sambanova"
-          ? {
-              max_tokens: selectedProvider.max_tokens,
-            }
-          : {}),
-      },
-      billTo ? { billTo } : {}
-    );
+        stream: false,
+        options: {
+          num_predict: selectedProvider.max_tokens,
+        }
+      }),
+    });
 
-    const chunk = response.choices[0]?.message?.content;
+    if (!response.ok) {
+      throw new Error(`Ollama API error: ${response.statusText}`);
+    }
+
+    const ollamaResult = await response.json();
+    const chunk = ollamaResult.message?.content;
     if (!chunk) {
       return NextResponse.json(
         { ok: false, message: "No content returned from the model" },
