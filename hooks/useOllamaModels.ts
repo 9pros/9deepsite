@@ -18,6 +18,8 @@ export function useOllamaModels() {
             label: model.label || model.value,
             providers: ["ollama"],
             autoProvider: "ollama",
+            // Enable thinking mode for DeepSeek V3 models
+            isThinker: model.value.includes('deepseek-v3') || model.value.includes('deepseek-r1'),
           }));
           
           setModels(formattedModels);

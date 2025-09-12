@@ -1,41 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
-import { RepoDesignation, uploadFiles } from "@huggingface/hub";
+import { writeFile, mkdir, readdir } from "fs/promises";
+import path from "path";
+import { existsSync } from "fs";
 
-import { isAuthenticated } from "@/lib/auth";
-import Project from "@/models/Project";
-import dbConnect from "@/lib/mongodb";
+// Store images locally in the public directory
 
-// No longer need the ImageUpload interface since we're handling FormData with File objects
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ namespace: string; repoId: string }> }
+) {
+  try {
+    const param = await params;
+    const { namespace, repoId } = param;
+
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', namespace, repoId, 'images');
+    
+    if (!existsSync(uploadDir)) {
+      return NextResponse.json({ 
+        ok: true, 
+        images: [],
+        message: 'No images uploaded yet'
+      }, { status: 200 });
+    }
+
+    const files = await readdir(uploadDir);
+    const imageUrls = files
+      .filter(file => /\.(jpg|jpeg|png|gif|svg|webp|avif|heic|heif|ico|bmp|tiff|tif)$/i.test(file))
+      .map(file => `/uploads/${namespace}/${repoId}/images/${file}`);
+
+    return NextResponse.json({ 
+      ok: true, 
+      images: imageUrls,
+      count: imageUrls.length
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error('Error listing images:', error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Failed to list images",
+      },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ namespace: string; repoId: string }> }
 ) {
   try {
-    const user = await isAuthenticated();
-
-    if (user instanceof NextResponse || !user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    await dbConnect();
     const param = await params;
     const { namespace, repoId } = param;
 
-    const project = await Project.findOne({
-      user_id: user.id,
-      space_id: `${namespace}/${repoId}`,
-    }).lean();
-    
-    if (!project) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Project not found",
-        },
-        { status: 404 }
-      );
-    }
+    // Allow uploads even without authentication for local development
+    // This enables image uploads before project publication
 
     // Parse the FormData to get the images
     const formData = await req.formData();
@@ -51,9 +71,10 @@ export async function POST(
       );
     }
 
-    const files: File[] = [];
+    // Validate all files are images
     for (const file of imageFiles) {
-      if (!(file instanceof File)) {
+      // In Node.js environment, check if it's a Blob/File-like object
+      if (!file || typeof file !== 'object') {
         return NextResponse.json(
           {
             ok: false,
@@ -63,7 +84,9 @@ export async function POST(
         );
       }
 
-      if (!file.type.startsWith('image/')) {
+      // Check file type
+      const fileType = file.type || '';
+      if (!fileType.startsWith('image/')) {
         return NextResponse.json(
           {
             ok: false,
@@ -72,30 +95,41 @@ export async function POST(
           { status: 400 }
         );
       }
-
-      // Create File object with images/ folder prefix
-      const fileName = `images/${file.name}`;
-      const processedFile = new File([file], fileName, { type: file.type });
-      files.push(processedFile);
     }
 
-    // Upload files to HuggingFace space
-    const repo: RepoDesignation = {
-      type: "space",
-      name: `${namespace}/${repoId}`,
-    };
+    // Create upload directory if it doesn't exist
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', namespace, repoId, 'images');
+    if (!existsSync(uploadDir)) {
+      await mkdir(uploadDir, { recursive: true });
+    }
 
-    await uploadFiles({
-      repo,
-      files,
-      accessToken: user.token as string,
-      commitTitle: `Upload ${files.length} image(s)`,
-    });
+    const uploadedUrls: string[] = [];
+    
+    // Save files locally
+    for (const file of imageFiles) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      
+      // Generate unique filename to avoid conflicts
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(7);
+      const originalName = file.name.replace(/^images\//, ''); // Remove 'images/' prefix if present
+      const extension = path.extname(originalName);
+      const baseName = path.basename(originalName, extension).replace(/[^a-zA-Z0-9-_]/g, '_'); // Sanitize filename
+      const uniqueFileName = `${baseName}-${timestamp}-${randomString}${extension}`;
+      
+      const filePath = path.join(uploadDir, uniqueFileName);
+      await writeFile(filePath, buffer);
+      
+      // Create public URL for the uploaded image
+      const publicUrl = `/uploads/${namespace}/${repoId}/images/${uniqueFileName}`;
+      uploadedUrls.push(publicUrl);
+    }
 
     return NextResponse.json({ 
       ok: true, 
-      message: `Successfully uploaded ${files.length} image(s) to ${namespace}/${repoId}/images/`,
-      uploadedFiles: files.map((file) => `https://huggingface.co/spaces/${namespace}/${repoId}/resolve/main/${file.name}`),
+      message: `Successfully uploaded ${imageFiles.length} image(s) to local storage`,
+      uploadedFiles: uploadedUrls,
     }, { status: 200 });
 
   } catch (error) {
@@ -103,7 +137,8 @@ export async function POST(
     return NextResponse.json(
       {
         ok: false,
-        error: "Failed to upload images",
+        error: error instanceof Error ? error.message : "Failed to upload images",
+        details: error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     );

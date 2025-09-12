@@ -3,9 +3,22 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     const ollamaEndpoint = process.env.OLLAMA_API_URL || "http://localhost:11434";
+    const ollamaApiKey = process.env.OLLAMA_API_KEY;
+    
+    // Prepare headers for Ollama API
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Add Authorization header if API key is available (for Ollama Turbo)
+    if (ollamaApiKey) {
+      headers['Authorization'] = `Bearer ${ollamaApiKey}`;
+    }
     
     // Fetch available models from Ollama
-    const response = await fetch(`${ollamaEndpoint}/api/tags`);
+    const response = await fetch(`${ollamaEndpoint}/api/tags`, {
+      headers
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch models: ${response.statusText}`);
@@ -20,6 +33,8 @@ export async function GET() {
       size: model.size,
       modified: model.modified_at,
       details: model.details,
+      // Enable thinking mode for DeepSeek V3 and R1 models
+      isThinker: model.name.includes('deepseek-v3') || model.name.includes('deepseek-r1'),
     })) || [];
     
     return NextResponse.json({
@@ -36,6 +51,7 @@ export async function GET() {
         {
           value: "deepseek-v3:latest",
           label: "DeepSeek V3",
+          isThinker: true,
         },
         {
           value: "llama3.2:latest",

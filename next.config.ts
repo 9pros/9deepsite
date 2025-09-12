@@ -25,7 +25,13 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
-    remotePatterns: [new URL('https://huggingface.co/**')],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'huggingface.co',
+        pathname: '/**',
+      }
+    ],
   },
 };
 

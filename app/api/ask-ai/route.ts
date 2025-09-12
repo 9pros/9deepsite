@@ -19,7 +19,20 @@ import {
 import MY_TOKEN_KEY from "@/lib/get-cookie-name";
 import { Page } from "@/types";
 
+// Rate limiting with automatic cleanup
 const ipAddresses = new Map();
+const ipTimestamps = new Map();
+
+// Clean up old entries every hour
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, timestamp] of ipTimestamps.entries()) {
+    if (now - timestamp > 3600000) { // 1 hour
+      ipAddresses.delete(ip);
+      ipTimestamps.delete(ip);
+    }
+  }
+}, 3600000);
 
 export async function POST(request: NextRequest) {
   const authHeaders = await headers();
@@ -56,22 +69,35 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // No authentication needed for Ollama
+  // Disabled rate limiting for local Ollama usage
+  // Uncomment below to enable rate limiting if needed
+  /*
   const ip = authHeaders.get("x-forwarded-for")?.includes(",")
     ? authHeaders.get("x-forwarded-for")?.split(",")[1].trim()
     : authHeaders.get("x-forwarded-for");
 
-  // Simple rate limiting without authentication
-  ipAddresses.set(ip, (ipAddresses.get(ip) || 0) + 1);
-  if (ipAddresses.get(ip) > MAX_REQUESTS_PER_IP) {
-    return NextResponse.json(
-      {
-        ok: false,
-        message: "Rate limit exceeded. Please wait before making more requests.",
-      },
-      { status: 429 }
-    );
+  const now = Date.now();
+  const lastRequest = ipTimestamps.get(ip) || 0;
+  
+  // Reset counter if more than 1 minute has passed
+  if (now - lastRequest > 60000) {
+    ipAddresses.set(ip, 1);
+    ipTimestamps.set(ip, now);
+  } else {
+    ipAddresses.set(ip, (ipAddresses.get(ip) || 0) + 1);
+    ipTimestamps.set(ip, now);
+    
+    if (ipAddresses.get(ip) > (MAX_REQUESTS_PER_IP || 1000)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "Rate limit exceeded. Please wait a minute before making more requests.",
+        },
+        { status: 429 }
+      );
+    }
   }
+  */
 
   const DEFAULT_PROVIDER = PROVIDERS.ollama;
   const selectedProvider =
@@ -104,11 +130,21 @@ export async function POST(request: NextRequest) {
       try {
         // Call Ollama API
         const ollamaEndpoint = selectedProvider.endpoint || process.env.OLLAMA_API_URL || "http://localhost:11434";
+        const ollamaApiKey = process.env.OLLAMA_API_KEY;
+        
+        // Prepare headers for Ollama API
+        const ollamaHeaders: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        // Add Authorization header if API key is available (for Ollama Turbo)
+        if (ollamaApiKey) {
+          ollamaHeaders['Authorization'] = `Bearer ${ollamaApiKey}`;
+        }
+        
         const ollamaResponse = await fetch(`${ollamaEndpoint}/api/chat`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: ollamaHeaders,
           body: JSON.stringify({
             model: selectedModel.value,
             messages: [
@@ -219,22 +255,35 @@ export async function PUT(request: NextRequest) {
     autoProvider: "ollama",
   };
 
-  // No authentication needed for Ollama
+  // Disabled rate limiting for local Ollama usage
+  // Uncomment below to enable rate limiting if needed
+  /*
   const ip = authHeaders.get("x-forwarded-for")?.includes(",")
     ? authHeaders.get("x-forwarded-for")?.split(",")[1].trim()
     : authHeaders.get("x-forwarded-for");
 
-  // Simple rate limiting without authentication
-  ipAddresses.set(ip, (ipAddresses.get(ip) || 0) + 1);
-  if (ipAddresses.get(ip) > MAX_REQUESTS_PER_IP) {
-    return NextResponse.json(
-      {
-        ok: false,
-        message: "Rate limit exceeded. Please wait before making more requests.",
-      },
-      { status: 429 }
-    );
+  const now = Date.now();
+  const lastRequest = ipTimestamps.get(ip) || 0;
+  
+  // Reset counter if more than 1 minute has passed
+  if (now - lastRequest > 60000) {
+    ipAddresses.set(ip, 1);
+    ipTimestamps.set(ip, now);
+  } else {
+    ipAddresses.set(ip, (ipAddresses.get(ip) || 0) + 1);
+    ipTimestamps.set(ip, now);
+    
+    if (ipAddresses.get(ip) > (MAX_REQUESTS_PER_IP || 1000)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "Rate limit exceeded. Please wait a minute before making more requests.",
+        },
+        { status: 429 }
+      );
+    }
   }
+  */
 
   const DEFAULT_PROVIDER = PROVIDERS.ollama;
   const selectedProvider =
@@ -245,11 +294,21 @@ export async function PUT(request: NextRequest) {
   try {
     // Call Ollama API for non-streaming completion
     const ollamaEndpoint = selectedProvider.endpoint || process.env.OLLAMA_API_URL || "http://localhost:11434";
+    const ollamaApiKey = process.env.OLLAMA_API_KEY;
+    
+    // Prepare headers for Ollama API
+    const ollamaHeaders: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Add Authorization header if API key is available (for Ollama Turbo)
+    if (ollamaApiKey) {
+      ollamaHeaders['Authorization'] = `Bearer ${ollamaApiKey}`;
+    }
+    
     const response = await fetch(`${ollamaEndpoint}/api/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: ollamaHeaders,
       body: JSON.stringify({
         model: selectedModel.value,
         messages: [
