@@ -353,7 +353,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                             placeholder="example.com or https://example.com"
                             value={formData.websiteUrl || ''}
                             onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
                           />
                           <p className="text-xs text-gray-500 mt-2">
                             Enter with or without https://
@@ -372,7 +372,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                             placeholder="Enter your company name"
                             value={formData.companyName || ''}
                             onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
                           />
                         </div>
                       </>
@@ -454,7 +454,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                             value={customServiceInput}
                             onChange={(e) => setCustomServiceInput(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleAddCustomService()}
-                            className="flex-1 px-4 py-2 rounded-xl border border-gray-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all text-sm"
+                            className="flex-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all text-sm"
                           />
                           <button
                             onClick={handleAddCustomService}
@@ -512,12 +512,12 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                             placeholder="City"
                             value={area.city}
                             onChange={(e) => handleServiceAreaChange(index, 'city', e.target.value)}
-                            className="flex-1 px-4 py-2 rounded-xl border border-gray-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all text-sm"
+                            className="flex-1 px-4 py-2 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all text-sm"
                           />
                           <select
                             value={area.state}
                             onChange={(e) => handleServiceAreaChange(index, 'state', e.target.value)}
-                            className="px-4 py-2 rounded-xl border border-gray-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all text-sm"
+                            className="px-4 py-2 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all text-sm"
                           >
                             <option value="">State</option>
                             {states.map((state) => (
@@ -575,7 +575,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                               ...formData,
                               contactInfo: { ...formData.contactInfo, firstName: e.target.value }
                             })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
                           />
                         </div>
                         <div>
@@ -590,7 +590,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                               ...formData,
                               contactInfo: { ...formData.contactInfo, lastName: e.target.value }
                             })}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
                           />
                         </div>
                       </div>
@@ -607,7 +607,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                             ...formData,
                             contactInfo: { ...formData.contactInfo, email: e.target.value }
                           })}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                          className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
                         />
                       </div>
                       
@@ -623,7 +623,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                             ...formData,
                             contactInfo: { ...formData.contactInfo, phone: e.target.value }
                           })}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                          className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
                         />
                       </div>
                     </div>
