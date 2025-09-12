@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import classNames from "classnames";
 import { toast } from "sonner";
 import { useLocalStorage, useUpdateEffect } from "react-use";
@@ -47,6 +47,9 @@ export function AskAI({
   onSuccess,
   setPages,
   setCurrentPage,
+  initialPrompt,
+  initialUrl,
+  autostart,
 }: {
   project?: Project | null;
   currentPage: Page;
@@ -68,6 +71,9 @@ export function AskAI({
   setSelectedFiles: React.Dispatch<React.SetStateAction<string[]>>;
   setPages: React.Dispatch<React.SetStateAction<Page[]>>;
   setCurrentPage: React.Dispatch<React.SetStateAction<string>>;
+  initialPrompt?: string | null;
+  initialUrl?: string | null;
+  autostart?: boolean;
 }) {
   const refThink = useRef<HTMLDivElement | null>(null);
 
@@ -106,6 +112,54 @@ export function AskAI({
   const selectedModel = useMemo(() => {
     return MODELS.find((m: { value: string }) => m.value === model);
   }, [model]);
+
+  // Handle auto-start functionality
+  useEffect(() => {
+    if (autostart && initialPrompt && !isAiWorking) {
+      // Set the prompt
+      setPrompt(initialPrompt);
+      
+      // If there's a URL, it's a redesign flow
+      if (initialUrl) {
+        // Trigger redesign with URL
+        const normalizedUrl = initialUrl.startsWith('http') ? initialUrl : `https://${initialUrl}`;
+        
+        // Call the redesign API
+        const triggerRedesign = async () => {
+          try {
+            const response = await fetch('/api/re-design', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: normalizedUrl })
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.markdown) {
+                // Trigger the AI with redesign markdown
+                setTimeout(() => {
+                  callAi(data.markdown);
+                }, 500);
+              }
+            }
+          } catch (error) {
+            console.error('Failed to trigger redesign:', error);
+            // Fallback to regular prompt
+            setTimeout(() => {
+              callAi();
+            }, 500);
+          }
+        };
+        
+        triggerRedesign();
+      } else {
+        // Regular prompt flow - just call AI
+        setTimeout(() => {
+          callAi();
+        }, 500);
+      }
+    }
+  }, [autostart, initialPrompt, initialUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const callAi = async (redesignMarkdown?: string) => {
     if (isAiWorking) return;
