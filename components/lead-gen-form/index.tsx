@@ -54,22 +54,36 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
     }
   }, [formData.industry]);
 
-  const totalSteps = formData.projectType === 'redesign' ? 5 : 6;
+  const totalSteps = formData.projectType === 'redesign' ? 4 : 6;
 
   const handleNext = () => {
     if (validateCurrentStep()) {
-      if (currentStep === 2 && formData.projectType === 'redesign') {
-        setCurrentStep(5); // Skip to service area
+      if (formData.projectType === 'redesign') {
+        // Redesign flow: 1 -> 2 -> 3 (service areas) -> 4 (contact)
+        if (currentStep === 2) {
+          setCurrentStep(3); // Go to service areas
+        } else {
+          setCurrentStep(currentStep + 1);
+        }
       } else {
+        // New website flow: normal progression
         setCurrentStep(currentStep + 1);
       }
     }
   };
 
   const handleBack = () => {
-    if (currentStep === 5 && formData.projectType === 'redesign') {
-      setCurrentStep(2);
+    if (formData.projectType === 'redesign') {
+      // Redesign flow navigation
+      if (currentStep === 3) {
+        setCurrentStep(2); // Back to URL
+      } else if (currentStep === 4) {
+        setCurrentStep(3); // Back to service areas
+      } else {
+        setCurrentStep(currentStep - 1);
+      }
     } else {
+      // New website flow: normal back navigation
       setCurrentStep(currentStep - 1);
     }
   };
@@ -83,12 +97,24 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
           ? formData.websiteUrl && formData.websiteUrl.trim() !== ''
           : formData.companyName && formData.companyName.trim() !== '';
       case 3:
-        return formData.industry && formData.industry !== '';
+        // For redesign: service areas, For new: industry
+        return formData.projectType === 'redesign'
+          ? formData.serviceAreas.some(area => area.city && area.state)
+          : formData.industry && formData.industry !== '';
       case 4:
-        return formData.services.length > 0 || formData.customServices.length > 0;
+        // For redesign: contact info, For new: services
+        if (formData.projectType === 'redesign') {
+          const { firstName, lastName, email, phone } = formData.contactInfo;
+          return firstName && lastName && email && phone && 
+                 /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        } else {
+          return formData.services.length > 0 || formData.customServices.length > 0;
+        }
       case 5:
+        // Only for new: service areas
         return formData.serviceAreas.some(area => area.city && area.state);
       case 6:
+        // Only for new: contact info
         const { firstName, lastName, email, phone } = formData.contactInfo;
         return firstName && lastName && email && phone && 
                /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -151,9 +177,9 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
     
     // Navigate to the editor with the prompt
     if (formData.projectType === 'redesign' && formData.websiteUrl) {
-      router.push(`/editor?prompt=${encodeURIComponent(prompt)}&url=${encodeURIComponent(normalizeUrl(formData.websiteUrl))}`);
+      router.push(`/projects/new?prompt=${encodeURIComponent(prompt)}&url=${encodeURIComponent(normalizeUrl(formData.websiteUrl))}&autostart=true`);
     } else {
-      router.push(`/editor?prompt=${encodeURIComponent(prompt)}&autostart=true`);
+      router.push(`/projects/new?prompt=${encodeURIComponent(prompt)}&autostart=true`);
     }
   };
 
@@ -399,7 +425,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                             "p-3 rounded-xl border text-left transition-all text-sm",
                             formData.industry === industry.value
                               ? "border-indigo-600 bg-indigo-50 text-indigo-900"
-                              : "border-gray-200 hover:border-gray-300"
+                              : "border-gray-200 hover:border-gray-300 text-gray-700"
                           )}
                         >
                           <span className="font-medium">{industry.label}</span>
@@ -434,7 +460,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                               "p-3 rounded-xl border text-left transition-all text-sm",
                               formData.services.includes(service)
                                 ? "border-indigo-600 bg-indigo-50 text-indigo-900"
-                                : "border-gray-200 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                : "border-gray-200 hover:border-gray-300 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             )}
                           >
                             <span className="font-medium">{service}</span>
@@ -490,8 +516,8 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                   </motion.div>
                 )}
 
-                {/* Step 5: Service Areas */}
-                {currentStep === 5 && (
+                {/* Step 3 (redesign) or Step 5 (new): Service Areas */}
+                {((currentStep === 3 && formData.projectType === 'redesign') || (currentStep === 5 && formData.projectType === 'new')) && (
                   <motion.div
                     key="step5"
                     initial={{ opacity: 0, x: 20 }}
@@ -547,8 +573,8 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                   </motion.div>
                 )}
 
-                {/* Step 6: Contact Info */}
-                {currentStep === 6 && (
+                {/* Step 4 (redesign) or Step 6 (new): Contact Info */}
+                {((currentStep === 4 && formData.projectType === 'redesign') || (currentStep === 6 && formData.projectType === 'new')) && (
                   <motion.div
                     key="step6"
                     initial={{ opacity: 0, x: 20 }}
