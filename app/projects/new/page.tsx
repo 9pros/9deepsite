@@ -9,8 +9,9 @@ function ProjectsNewContent() {
   const prompt = searchParams.get('prompt');
   const url = searchParams.get('url');
   const autostart = searchParams.get('autostart') === 'true';
+  const model = searchParams.get('model');
   
-  return <AppEditor isNew initialPrompt={prompt} initialUrl={url} autostart={autostart} />;
+  return <AppEditor isNew initialPrompt={prompt} initialUrl={url} autostart={autostart} initialModel={model} />;
 }
 
 export default function ProjectsNewPage() {

@@ -50,6 +50,7 @@ export function AskAI({
   initialPrompt,
   initialUrl,
   autostart,
+  initialModel,
 }: {
   project?: Project | null;
   currentPage: Page;
@@ -74,6 +75,7 @@ export function AskAI({
   initialPrompt?: string | null;
   initialUrl?: string | null;
   autostart?: boolean;
+  initialModel?: string | null;
 }) {
   const refThink = useRef<HTMLDivElement | null>(null);
 
@@ -118,6 +120,10 @@ export function AskAI({
     if (autostart && initialPrompt && !isAiWorking) {
       // Set the prompt
       setPrompt(initialPrompt);
+      
+      // Use provided model or default to deepseek-v3.1:671b for lead gen
+      const modelToUse = initialModel || 'deepseek-v3.1:671b';
+      setModel(modelToUse);
       
       // If there's a URL, it's a redesign flow
       if (initialUrl) {

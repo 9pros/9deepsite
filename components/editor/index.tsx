@@ -36,6 +36,7 @@ export const AppEditor = ({
   initialPrompt,
   initialUrl,
   autostart,
+  initialModel,
 }: {
   project?: Project | null;
   pages?: Page[];
@@ -44,6 +45,7 @@ export const AppEditor = ({
   initialPrompt?: string | null;
   initialUrl?: string | null;
   autostart?: boolean;
+  initialModel?: string | null;
 }) => {
   const [htmlStorage, , removeHtmlStorage] = useLocalStorage("pages");
   const [, copyToClipboard] = useCopyToClipboard();
@@ -306,6 +308,7 @@ export const AppEditor = ({
                 initialPrompt={initialPrompt}
                 initialUrl={initialUrl}
                 autostart={autostart}
+                initialModel={initialModel}
                 onSuccess={(newPages, p: string) => {
                   const currentHistory = [...htmlHistory];
                   currentHistory.unshift({

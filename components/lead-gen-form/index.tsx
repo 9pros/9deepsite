@@ -175,11 +175,11 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
       generatedPrompt: prompt
     }));
     
-    // Navigate to the editor with the prompt
+    // Navigate to the editor with the prompt and force deepseek-v3.1:671b model
     if (formData.projectType === 'redesign' && formData.websiteUrl) {
-      router.push(`/projects/new?prompt=${encodeURIComponent(prompt)}&url=${encodeURIComponent(normalizeUrl(formData.websiteUrl))}&autostart=true`);
+      router.push(`/projects/new?prompt=${encodeURIComponent(prompt)}&url=${encodeURIComponent(normalizeUrl(formData.websiteUrl))}&autostart=true&model=deepseek-v3.1:671b`);
     } else {
-      router.push(`/projects/new?prompt=${encodeURIComponent(prompt)}&autostart=true`);
+      router.push(`/projects/new?prompt=${encodeURIComponent(prompt)}&autostart=true&model=deepseek-v3.1:671b`);
     }
   };
 
