@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   // Simple mock authentication - no external service required
-  const body = await req.json();
+  // const body = await req.json();
   // const { code } = body;
 
   // Return mock user data without requiring actual authentication

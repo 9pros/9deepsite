@@ -5,7 +5,7 @@
 
 // Unsplash API (no key needed for demo/low volume)
 // For production, get a free API key from https://unsplash.com/developers
-const UNSPLASH_ACCESS_KEY = 'demo'; // Replace with actual key for production
+// const UNSPLASH_ACCESS_KEY = 'demo'; // Replace with actual key for production
 
 /**
  * Industry-specific search terms for better image matching

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 // Custom models that are always available (disabled - use only real Ollama models)
-const CUSTOM_MODELS: unknown[] = [
+// const CUSTOM_MODELS: unknown[] = [
   // Removed fake models - only show actually installed Ollama models
-];
+// ];
 
 // Llama API models that are always available if API key is configured
 const LLAMA_MODELS = [

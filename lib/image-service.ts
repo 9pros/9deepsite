@@ -1,12 +1,14 @@
 // Image service to fetch industry-relevant stock photos
-// Using Unsplash Source API (no API key required for basic usage)
+// Enhanced with Unsplash API integration for high-quality images
 
-interface ImageSearchParams {
-  query: string;
-  width?: number;
-  height?: number;
-  count?: number;
-}
+import { unsplashService, type BusinessContext, type UnsplashPhoto } from './unsplash-service';
+
+// interface ImageSearchParams {
+//   query: string;
+//   width?: number;
+//   height?: number;
+//   count?: number;
+// }
 
 interface StockImage {
   url: string;

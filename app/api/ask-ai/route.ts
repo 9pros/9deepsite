@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 
 import { MODELS, PROVIDERS } from "@/lib/providers";
 import {
@@ -16,9 +15,9 @@ import {
   UPDATE_PAGE_START,
   UPDATE_PAGE_END,
 } from "@/lib/prompts";
-import MY_TOKEN_KEY from "@/lib/get-cookie-name";
+// import MY_TOKEN_KEY from "@/lib/get-cookie-name";
 import { Page } from "@/types";
-import { extractBusinessContext, generateImageUrls, detectIndustry } from "@/lib/image-service";
+import { extractBusinessContext, detectIndustry } from "@/lib/image-service";
 // import { detectIndustryFromContext, generateIndustryImageSet } from "@/lib/smart-image-service";
 
 // Rate limiting with automatic cleanup
@@ -146,7 +145,7 @@ export async function POST(request: NextRequest) {
           isThinker: m.name.includes('deepseek-v3') || m.name.includes('deepseek-r1'),
         })) || [];
       }
-    } catch (error) {
+    } catch {
       console.warn('Failed to fetch Ollama models');
     }
 
@@ -155,7 +154,7 @@ export async function POST(request: NextRequest) {
       ...(llamaApiKey ? LLAMA_MODELS : []),
       ...ollamaModels
     ];
-  } catch (error) {
+  } catch {
     console.warn('Failed to load dynamic models, using static fallback');
   }
 
