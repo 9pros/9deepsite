@@ -5,10 +5,50 @@ export const PROVIDERS = {
     id: "ollama",
     endpoint: process.env.OLLAMA_API_URL || "http://localhost:11434",
   },
+  llama: {
+    name: "Llama API",
+    max_tokens: 128_000,
+    id: "llama",
+    endpoint: process.env.LLAMA_API_URL || "https://api.llama.com/v1",
+    apiKey: process.env.LLAMA_API_KEY,
+  },
 };
 
 // Default models - will be replaced by dynamic models from Ollama
 export const DEFAULT_MODELS = [
+  // Available Local Models
+  {
+    value: "llama3.2:3b",
+    label: "Llama 3.2 3B (Local)",
+    providers: ["ollama"],
+    autoProvider: "ollama",
+  },
+  {
+    value: "deepseek-r1:14b",
+    label: "DeepSeek R1 14B (Local)",
+    providers: ["ollama"],
+    autoProvider: "ollama",
+    isThinker: true,
+  },
+  // Llama API Models
+  {
+    value: "llama3.3-70b",
+    label: "Llama 3.3 70B",
+    providers: ["llama"],
+    autoProvider: "llama",
+  },
+  {
+    value: "llama3.2-90b",
+    label: "Llama 3.2 90B",
+    providers: ["llama"],
+    autoProvider: "llama",
+  },
+  {
+    value: "llama3.2-11b-vision",
+    label: "Llama 3.2 11B Vision",
+    providers: ["llama"],
+    autoProvider: "llama",
+  },
   // Ollama Turbo Models (cloud-based)
   {
     value: "gpt-oss:20b",
@@ -68,11 +108,18 @@ export let MODELS = DEFAULT_MODELS;
 
 // Function to update models dynamically
 export const updateModels = (newModels: any[]) => {
-  MODELS = newModels.map(model => ({
-    ...model,
-    providers: ["ollama"],
-    autoProvider: "ollama",
-    // Preserve isThinker flag if present, or check for DeepSeek V3 models
-    isThinker: model.isThinker || model.value?.includes('deepseek-v3') || model.value?.includes('deepseek-r1'),
-  }));
+  MODELS = newModels.map(model => {
+    // Check if this is a Llama API model
+    const isLlamaModel = model.provider === 'llama' || 
+                       model.value?.includes('llama3.3') || 
+                       model.value?.includes('llama3.2');
+    
+    return {
+      ...model,
+      providers: [model.provider || (isLlamaModel ? "llama" : "ollama")],
+      autoProvider: model.provider || (isLlamaModel ? "llama" : "ollama"),
+      // Preserve isThinker flag if present, or check for DeepSeek V3 models
+      isThinker: model.isThinker || model.value?.includes('deepseek-v3') || model.value?.includes('deepseek-r1'),
+    };
+  });
 };

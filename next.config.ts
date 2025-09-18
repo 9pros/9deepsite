@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+
+  // Cloudflare Pages configuration
+  output: 'standalone',
+  trailingSlash: true,
+
   webpack(config, options) {
     const { isServer } = options;
     config.module.rules.push({

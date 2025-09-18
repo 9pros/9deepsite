@@ -62,7 +62,7 @@ export function Footer({
   };
 
   return (
-    <footer className="border-t bg-slate-200 border-slate-300 dark:bg-neutral-950 dark:border-neutral-800 px-3 py-2 flex items-center justify-between sticky bottom-0 z-20">
+    <footer className="border-t bg-[#020205] border-gray-800 px-3 py-2 flex items-center justify-between sticky bottom-0 z-20">
       <div className="flex items-center gap-2">
         {user ? (
           user?.isLocalUse ? (
@@ -75,12 +75,12 @@ export function Footer({
             <UserMenu className="!p-1 !pr-3 !h-auto" />
           )
         ) : (
-          <Button size="sm" variant="default" onClick={handleClick}>
+          <Button size="sm" variant="default" onClick={handleClick} className="bg-[#375CEC] hover:bg-[#2a4bc7] border-none">
             <LogIn className="text-sm" />
             Log In
           </Button>
         )}
-        {user && !isNew && <p className="text-neutral-700">|</p>}
+        {user && !isNew && <p className="text-gray-600">|</p>}
         {!isNew && (
           <Link href="/projects/new">
             <Button size="sm" variant="secondary">
@@ -91,7 +91,7 @@ export function Footer({
         )}
         {htmlHistory && htmlHistory.length > 0 && (
           <>
-            <p className="text-neutral-700">|</p>
+            <p className="text-gray-600">|</p>
             <History history={htmlHistory} setPages={setPages} />
           </>
         )}
@@ -119,10 +119,10 @@ export function Footer({
           <RefreshCcw className="size-3.5" />
           <span className="max-lg:hidden">Refresh Preview</span>
         </Button>
-        <div className="flex items-center rounded-full p-0.5 bg-neutral-700/70 relative overflow-hidden z-0 max-lg:hidden gap-0.5">
+        <div className="flex items-center rounded-full p-0.5 bg-gray-800/70 relative overflow-hidden z-0 max-lg:hidden gap-0.5">
           <div
             className={classNames(
-              "absolute left-0.5 top-0.5 rounded-full bg-white size-7 -z-[1] transition-all duration-200",
+              "absolute left-0.5 top-0.5 rounded-full bg-[#375CEC] size-7 -z-[1] transition-all duration-200",
               {
                 "translate-x-[calc(100%+2px)]": device === "mobile",
               }
@@ -132,10 +132,10 @@ export function Footer({
             <button
               key={deviceItem.name}
               className={classNames(
-                "rounded-full text-neutral-300 size-7 flex items-center justify-center cursor-pointer",
+                "rounded-full text-gray-400 size-7 flex items-center justify-center cursor-pointer",
                 {
-                  "!text-black": device === deviceItem.name,
-                  "hover:bg-neutral-800": device !== deviceItem.name,
+                  "!text-white": device === deviceItem.name,
+                  "hover:bg-gray-700": device !== deviceItem.name,
                 }
               )}
               onClick={() => setDevice(deviceItem.name as "desktop" | "mobile")}

@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Styling**: Tailwind CSS v4 with custom animations (tw-animate-css)
 - **UI Components**: Radix UI primitives with custom components in `components/ui/`
 - **Database**: MongoDB with Mongoose ODM
-- **AI Integration**: DeepSeek models via multiple providers (Fireworks AI, Nebius, SambaNova, NovitaAI, Hyperbolic, Together AI, Groq)
+- **AI Integration**: Multiple AI models via Ollama (local/cloud) and Llama API providers
 - **State Management**: React Query (TanStack Query) for server state
 - **Code Editor**: Monaco Editor and CodeSandbox Sandpack
 
@@ -44,18 +44,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Key Features
 
 #### AI Integration
-The application uses Ollama for local AI model execution with dynamic model detection:
-- Supports any Ollama-compatible model
+The application supports multiple AI providers with dynamic model detection:
+- **Ollama**: Local and cloud-based models (including DeepSeek V3.1, GPT-OSS, local models)
+- **Meta Llama API**: Official Meta Llama models via https://api.llama.com/v1/
+  - Latest Llama 4 models (Maverick 17B, Scout 8B)
+  - Llama 3.1 series (405B, 70B, 8B)
+  - Llama 3.2 series (90B, 11B, 3B, 1B)
 - Automatically detects and lists available models via `/api/models`
 - Configuration in `lib/providers.ts`
 - Main AI interaction endpoint at `app/api/ask-ai/route.ts`
 - Dynamic model selection with `useOllamaModels` hook
+- Special handling for "thinker" models (DeepSeek V3, R1, Llama 4 Maverick)
 
 #### Authentication
 Simplified authentication without external dependencies. Mock user data is provided for local development. No Hugging Face or external OAuth required.
 
 #### Project Management
-Projects are stored in MongoDB with space_id, user_id, and prompts. Project data model is defined in `models/Project.ts`.
+Projects are stored in MongoDB with comprehensive deployment tracking:
+- Supports both Hugging Face Spaces and Cloudflare Pages deployments
+- Cloudflare deployments use wildcard *.9gent.com subdomains
+- Project data model is defined in `models/Project.ts`
 
 ### Path Aliases
 - `@/*` maps to the root directory (configured in tsconfig.json)
@@ -63,7 +71,12 @@ Projects are stored in MongoDB with space_id, user_id, and prompts. Project data
 ### Environment Variables
 The application uses environment variables for:
 - `OLLAMA_API_URL` - Ollama API endpoint (default: http://localhost:11434)
+- `OLLAMA_API_KEY` - Optional API key for Ollama Turbo cloud service
+- `LLAMA_API_URL` - Llama API endpoint for Llama models
+- `LLAMA_API_KEY` - API key for Llama API service
 - `MONGODB_URI` - MongoDB connection for project storage (optional)
-- `MAX_REQUESTS_PER_IP` - Rate limiting configuration
+- `MAX_REQUESTS_PER_IP` - Rate limiting configuration (default: 100)
+- `CLOUDFLARE_ACCOUNT_ID` - Cloudflare account ID for Pages deployment
+- `CLOUDFLARE_API_TOKEN` - Cloudflare API token with Pages permissions
 
-See `.env.example` and `OLLAMA_SETUP.md` for detailed configuration.
+See `.env.example` for detailed configuration.

@@ -1,9 +1,9 @@
 "use client";
 import { useUpdateEffect } from "react-use";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import classNames from "classnames";
 import { toast } from "sonner";
-import { useThrottleFn } from "react-use";
+import { useThrottleFn, useDebounce } from "react-use";
 
 import { cn } from "@/lib/utils";
 import { GridPattern } from "@/components/magic-ui/grid-pattern";
@@ -145,7 +145,45 @@ export const Preview = ({
     return hoveredElement;
   }, [hoveredElement, isEditableModeEnabled]);
 
-  const throttledHtml = useThrottleFn((html) => html, 1000, [html]);
+  // Smart debouncing - faster for initial content, slower for updates
+  const [debouncedHtml, setDebouncedHtml] = useState(html || '');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [hasInitialContent, setHasInitialContent] = useState(false);
+  
+  // Track if there are pending changes
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  
+  // Update immediately for first content or significant changes
+  useEffect(() => {
+    if (html && !hasInitialContent) {
+      // First content - update immediately
+      setDebouncedHtml(html);
+      setHasInitialContent(true);
+    } else if (!html) {
+      // Reset when cleared
+      setDebouncedHtml('');
+      setHasInitialContent(false);
+    } else if (html !== debouncedHtml) {
+      setHasPendingChanges(true);
+    }
+  }, [html, hasInitialContent, debouncedHtml]);
+  
+  // Debounce subsequent updates
+  useDebounce(
+    () => {
+      if (html !== debouncedHtml && hasInitialContent) {
+        setIsUpdating(true);
+        // Quick fade for smooth transition
+        setTimeout(() => {
+          setDebouncedHtml(html);
+          setHasPendingChanges(false);
+          setTimeout(() => setIsUpdating(false), 300);
+        }, 100);
+      }
+    },
+    1000, // Update every second for better live view
+    [html, hasInitialContent, debouncedHtml]
+  );
 
   return (
     <div
@@ -193,13 +231,42 @@ export const Preview = ({
           </span>
         </div>
       )}
+      {/* Smooth transition overlay and update indicator */}
+      {isUpdating && (
+        <div className="absolute inset-0 bg-black/5 z-20 pointer-events-none transition-opacity duration-500" />
+      )}
+      
+      {/* Pending changes indicator - subtle dot in corner */}
+      {hasPendingChanges && !isUpdating && (
+        <div className="absolute top-4 right-4 z-30">
+          <div className="relative">
+            <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+            <div className="absolute inset-0 w-2 h-2 bg-amber-500 rounded-full animate-ping"></div>
+          </div>
+          <div className="sr-only">Changes pending</div>
+        </div>
+      )}
+      
+      {/* Update in progress indicator */}
+      {isUpdating && (
+        <div className="absolute top-4 right-4 z-30 bg-black/70 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all duration-300">
+          <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>Updating...</span>
+        </div>
+      )}
       <iframe
         id="preview-iframe"
         ref={iframeRef}
         title="output"
         className={classNames(
-          "w-full select-none transition-all duration-200 bg-black h-full",
+          "w-full select-none bg-black h-full",
+          "transition-opacity duration-500 ease-in-out",
           {
+            "opacity-95": isUpdating,
+            "opacity-100": !isUpdating,
             "pointer-events-none": isResizing || isAiWorking,
             "lg:max-w-md lg:mx-auto lg:!rounded-[42px] lg:border-[8px] lg:border-neutral-700 lg:shadow-2xl lg:h-[80dvh] lg:max-h-[996px]":
               device === "mobile",
@@ -207,7 +274,7 @@ export const Preview = ({
               currentTab !== "preview" && device === "desktop",
           }
         )}
-        srcDoc={isAiWorking ? (throttledHtml as string) : html}
+        srcDoc={debouncedHtml || ''}
         onLoad={() => {
           if (iframeRef?.current?.contentWindow?.document?.body) {
             iframeRef.current.contentWindow.document.body.scrollIntoView({

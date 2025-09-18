@@ -137,6 +137,12 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
     
     if (projectType === 'redesign' && websiteUrl) {
       prompt = `Redesign the website at ${normalizeUrl(websiteUrl)} with a modern, professional design that converts visitors into customers. `;
+      
+      // Add industry context for redesigns too
+      const industryLabel = industries.find(i => i.value === industry)?.label;
+      if (industryLabel) {
+        prompt += `This is a ${industryLabel.toLowerCase()} business. `;
+      }
     } else {
       prompt = `Create a stunning, modern website for ${companyName}, `;
       
@@ -155,7 +161,41 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
         prompt += `They serve the following areas: ${areas}. `;
       }
       
-      prompt += `Create an award-winning design with compelling copy, strong call-to-actions, testimonials section, services showcase, about us section, and a contact form. Make it mobile-responsive and SEO-optimized.`;
+      prompt += `Create an AWARD-WINNING, CONVERSION-FOCUSED website with: 
+      1) Hero section with TYPING ANIMATION rotating multiple H1 headlines
+      2) Multi-step conversion form for lead capture
+      3) Service areas section with expandable sub-areas (cities/neighborhoods)
+      4) FAQ accordion section with at least 10 questions
+      5) Trust badges and certifications
+      6) Before/After gallery
+      7) Video testimonials placeholder
+      8) Pricing calculator
+      9) Team showcase
+      10) Google Reviews section
+      11) Emergency service banner
+      12) Process timeline
+      13) Multiple CTAs throughout
+      14) Sticky header with phone number
+      15) Floating WhatsApp button
+      Make it mobile-responsive, SEO-optimized, with smooth animations and parallax effects.`;
+    }
+    
+    // Add specific image guidance based on industry
+    const industryLabel = industries.find(i => i.value === industry)?.label?.toLowerCase();
+    if (industryLabel) {
+      prompt += ` CRITICAL IMAGE REQUIREMENTS: Use ONLY high-quality, professional ${industryLabel} images. `;
+      
+      // Special handling for HVAC
+      if (industry === 'hvac' || industryLabel.includes('hvac') || industryLabel.includes('heating') || industryLabel.includes('cooling')) {
+        prompt += `For HVAC: Use images of AC units, furnaces, thermostats, ventilation systems, HVAC technicians at work. `;
+        prompt += `DO NOT use flowers, plants, or unrelated images. `;
+      } else {
+        prompt += `For the hero section, use impressive ${industryLabel} imagery. `;
+        prompt += `For service cards, use relevant ${industryLabel} service images. `;
+      }
+      
+      prompt += `Every image must be contextually appropriate for a ${industryLabel} business. `;
+      prompt += `Include service area maps showing coverage zones with pins for each city/neighborhood served.`;
     }
     
     return prompt;

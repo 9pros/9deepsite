@@ -115,21 +115,25 @@ export function AskAI({
     return MODELS.find((m: { value: string }) => m.value === model);
   }, [model]);
 
-  // Handle auto-start functionality
+  // Handle auto-start functionality (DISABLED for manual model testing)
   useEffect(() => {
     if (autostart && initialPrompt && !isAiWorking) {
-      // Set the prompt
+      // Set the prompt and model but don't auto-submit
       setPrompt(initialPrompt);
-      
+
       // Use provided model or default to deepseek-v3.1:671b for lead gen
       const modelToUse = initialModel || 'deepseek-v3.1:671b';
       setModel(modelToUse);
-      
+
+      // Don't auto-start - let user manually test different models
+      console.log('Auto-start disabled for model testing. Prompt and model set but not submitted.');
+
+      /* DISABLED AUTO-SUBMISSION - uncomment to re-enable
       // If there's a URL, it's a redesign flow
       if (initialUrl) {
         // Trigger redesign with URL
         const normalizedUrl = initialUrl.startsWith('http') ? initialUrl : `https://${initialUrl}`;
-        
+
         // Call the redesign API
         const triggerRedesign = async () => {
           try {
@@ -138,7 +142,7 @@ export function AskAI({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ url: normalizedUrl })
             });
-            
+
             if (response.ok) {
               const data = await response.json();
               if (data.markdown) {
@@ -156,7 +160,7 @@ export function AskAI({
             }, 500);
           }
         };
-        
+
         triggerRedesign();
       } else {
         // Regular prompt flow - just call AI
@@ -164,6 +168,7 @@ export function AskAI({
           callAi();
         }, 500);
       }
+      */
     }
   }, [autostart, initialPrompt, initialUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
