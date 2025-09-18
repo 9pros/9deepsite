@@ -58,7 +58,10 @@ class UnsplashService {
   private rateLimitRemaining: number | null = null;
 
   constructor(accessKey?: string) {
-    this.accessKey = accessKey || process.env.UNSPLASH_ACCESS_KEY || '';
+    this.accessKey = accessKey ||
+                     process.env.UNSPLASH_ACCESS_KEY ||
+                     process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY ||
+                     '';
   }
 
   private getHeaders(): HeadersInit {
