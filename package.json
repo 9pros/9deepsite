@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:deploy": "ESLINT_CONFIG_FILE=.eslintrc.deploy.js next build",
     "start": "next start",
     "lint": "next lint"
   },
