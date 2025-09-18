@@ -20,3 +20,4 @@ DeepSite is a coding platform powered by DeepSeek AI, designed to make coding sm
 ## How to use it locally
 
 Follow [this discussion](https://huggingface.co/spaces/enzostvs/deepsite/discussions/74)
+# Updated Thu Sep 18 11:52:33 PDT 2025
