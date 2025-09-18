@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Custom models that are always available (disabled - use only real Ollama models)
-const CUSTOM_MODELS: any[] = [
+const CUSTOM_MODELS: unknown[] = [
   // Removed fake models - only show actually installed Ollama models
 ];
 
@@ -62,6 +62,9 @@ export async function GET() {
   try {
     const ollamaEndpoint = process.env.OLLAMA_API_URL || "http://localhost:11434";
     const ollamaApiKey = process.env.OLLAMA_API_KEY;
+
+    // Check if we're in a serverless environment and Ollama is not available
+    const isServerless = process.env.CLOUDFLARE_PAGES || process.env.VERCEL || process.env.NETLIFY;
     
     // Prepare headers for Ollama API
     const headers: HeadersInit = {
@@ -73,28 +76,35 @@ export async function GET() {
       headers['Authorization'] = `Bearer ${ollamaApiKey}`;
     }
     
-    // Fetch available models from Ollama
-    const response = await fetch(`${ollamaEndpoint}/api/tags`, {
-      headers
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch models: ${response.statusText}`);
+    let ollamaModels = [];
+
+    // Only try to fetch from Ollama if not in serverless environment or if cloud endpoint
+    if (!isServerless || ollamaEndpoint.includes('cloud') || ollamaEndpoint.includes('api.')) {
+      try {
+        // Fetch available models from Ollama
+        const response = await fetch(`${ollamaEndpoint}/api/tags`, {
+          headers,
+          signal: AbortSignal.timeout(5000) // 5 second timeout
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Transform Ollama models to our format
+          ollamaModels = data.models?.map((model: { name: string; size?: number; modified_at?: string; details?: unknown }) => ({
+            value: model.name,
+            label: model.name.split(':')[0], // Remove tag for display
+            size: model.size,
+            modified: model.modified_at,
+            details: model.details,
+            provider: "ollama",
+            // Enable thinking mode for DeepSeek V3 and R1 models
+            isThinker: model.name.includes('deepseek-v3') || model.name.includes('deepseek-r1'),
+          })) || [];
+        }
+      } catch (fetchError) {
+        console.warn('Ollama not available, using fallback models:', fetchError);
+      }
     }
-    
-    const data = await response.json();
-    
-    // Transform Ollama models to our format
-    const ollamaModels = data.models?.map((model: any) => ({
-      value: model.name,
-      label: model.name.split(':')[0], // Remove tag for display
-      size: model.size,
-      modified: model.modified_at,
-      details: model.details,
-      provider: "ollama",
-      // Enable thinking mode for DeepSeek V3 and R1 models
-      isThinker: model.name.includes('deepseek-v3') || model.name.includes('deepseek-r1'),
-    })) || [];
     
     // Add Llama API models if API key is configured
     const llamaApiKey = process.env.LLAMA_API_KEY;

@@ -16,18 +16,30 @@
 
 3. **Build Configuration**
    ```
-   Framework preset: Next.js
+   Framework preset: Next.js (SSR)
    Build command: npm run build
    Build output directory: .next
    Root directory: (leave empty)
+   Node.js version: 18.20.8
    ```
 
 4. **Environment Variables**
    Add these in Cloudflare Pages settings:
    ```
-   OLLAMA_API_URL=http://localhost:11434
-   MONGODB_URI=mongodb://localhost:27017/deepsite
+   # Mark as serverless environment
+   CLOUDFLARE_PAGES=true
+
+   # AI API Configuration (use cloud services instead of localhost)
+   LLAMA_API_URL=https://api.llama.com/v1
+   LLAMA_API_KEY=your_llama_api_key_here
+
+   # Database (optional - use cloud MongoDB or remove for static deployment)
+   # MONGODB_URI=mongodb+srv://your-cloud-mongodb-uri
+
+   # Rate limiting
    MAX_REQUESTS_PER_IP=100
+
+   # Cloudflare configuration (for deployment features)
    CLOUDFLARE_ACCOUNT_ID=6d4073c1d8c3841422a19a0f91e50906
    CLOUDFLARE_API_TOKEN=v9HX-Ex1dPDb-Tnaji83F7Y_EjhDpVerSscPGFsi
    ```

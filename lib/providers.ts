@@ -107,13 +107,18 @@ export const DEFAULT_MODELS = [
 export let MODELS = DEFAULT_MODELS;
 
 // Function to update models dynamically
-export const updateModels = (newModels: any[]) => {
+export const updateModels = (newModels: Array<{
+  provider?: string;
+  value?: string;
+  isThinker?: boolean;
+  [key: string]: unknown;
+}>) => {
   MODELS = newModels.map(model => {
     // Check if this is a Llama API model
-    const isLlamaModel = model.provider === 'llama' || 
-                       model.value?.includes('llama3.3') || 
+    const isLlamaModel = model.provider === 'llama' ||
+                       model.value?.includes('llama3.3') ||
                        model.value?.includes('llama3.2');
-    
+
     return {
       ...model,
       providers: [model.provider || (isLlamaModel ? "llama" : "ollama")],

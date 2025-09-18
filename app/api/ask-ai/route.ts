@@ -37,8 +37,8 @@ setInterval(() => {
 }, 3600000);
 
 export async function POST(request: NextRequest) {
-  const authHeaders = await headers();
-  const userToken = request.cookies.get(MY_TOKEN_KEY())?.value;
+  // const authHeaders = await headers();
+  // const userToken = request.cookies.get(MY_TOKEN_KEY())?.value;
 
   const body = await request.json();
   const { prompt, provider, model, redesignMarkdown, previousPrompts, pages } = body;
@@ -439,8 +439,8 @@ export async function POST(request: NextRequest) {
                 else {
                   console.log('No content found in JSON:', json);
                 }
-              } catch (e) {
-                console.log('Failed to parse line:', line, 'Error:', e);
+              } catch {
+                console.log('Failed to parse line:', line);
               }
             }
           }
@@ -459,7 +459,7 @@ export async function POST(request: NextRequest) {
       } finally {
         try {
           await writer?.close();
-        } catch (e) {
+        } catch {
           // Stream might already be closed
         }
       }
@@ -480,8 +480,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const authHeaders = await headers();
-  const userToken = request.cookies.get(MY_TOKEN_KEY())?.value;
+  // const authHeaders = await headers();
+  // const userToken = request.cookies.get(MY_TOKEN_KEY())?.value;
 
   const body = await request.json();
   const { prompt, previousPrompts, provider, selectedElementHtml, model, pages, files, } =

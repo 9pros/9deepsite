@@ -131,7 +131,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
   };
 
   const generatePrompt = () => {
-    const { projectType, websiteUrl, companyName, industry, services, customServices, serviceAreas, contactInfo } = formData;
+    const { projectType, websiteUrl, companyName, industry, services, customServices, serviceAreas } = formData;
     
     let prompt = '';
     
@@ -409,7 +409,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                   >
                     {formData.projectType === 'redesign' ? (
                       <>
-                        <h3 className="text-2xl font-bold text-gray-900">What's your website URL?</h3>
+                        <h3 className="text-2xl font-bold text-gray-900">What&apos;s your website URL?</h3>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Website URL
@@ -428,7 +428,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                       </>
                     ) : (
                       <>
-                        <h3 className="text-2xl font-bold text-gray-900">What's your company name?</h3>
+                        <h3 className="text-2xl font-bold text-gray-900">What&apos;s your company name?</h3>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Company Name
@@ -624,7 +624,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                   >
                     <div>
                       <h3 className="text-2xl font-bold text-gray-900">Almost done! Your contact info</h3>
-                      <p className="text-gray-600 text-sm mt-1">We'll use this to personalize your website</p>
+                      <p className="text-gray-600 text-sm mt-1">We&apos;ll use this to personalize your website</p>
                     </div>
                     
                     <div className="space-y-4">

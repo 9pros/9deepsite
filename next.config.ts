@@ -4,9 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
 
   // Cloudflare Pages configuration
-  output: 'standalone',
   trailingSlash: true,
-
   webpack(config, options) {
     const { isServer } = options;
     config.module.rules.push({
@@ -30,6 +28,7 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',

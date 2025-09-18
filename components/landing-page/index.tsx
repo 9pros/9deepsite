@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Zap, Shield, Clock, Award, Star, ChevronRight, Menu, X, Globe, Palette, Code, TrendingUp } from 'lucide-react';
+import { Sparkles, Zap, Award, Star, ChevronRight, Menu, X, Palette, Code, TrendingUp } from 'lucide-react';
 import LeadGenForm from '@/components/lead-gen-form';
 import { Logo } from '@/components/ui/logo';
 
@@ -329,7 +329,7 @@ export default function LandingPage() {
                       <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                     ))}
                   </div>
-                  <p className="text-gray-300 mb-6">"{testimonial.content}"</p>
+                  <p className="text-gray-300 mb-6">&ldquo;{testimonial.content}&rdquo;</p>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-[#375CEC] rounded-full"></div>
                     <div>
@@ -362,7 +362,7 @@ export default function LandingPage() {
                 onClick={() => setIsFormOpen(true)}
                 className="px-8 py-4 bg-white text-[#375CEC] rounded-full font-semibold text-lg hover:shadow-2xl transform hover:scale-105 transition-all"
               >
-                Start Building Now - It's Free
+                Start Building Now - It&apos;s Free
               </button>
               <p className="text-sm text-white/70 mt-4">
                 No credit card required • Setup in 60 seconds • Cancel anytime
