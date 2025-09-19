@@ -147,7 +147,7 @@ export function UnsplashTest() {
       <div className="mt-8 p-4 bg-gray-100 rounded">
         <h3 className="font-semibold mb-2">Integration Status:</h3>
         <ul className="text-sm space-y-1">
-          <li>✅ Unsplash service configured: {unsplashService.isConfigured() ? 'Yes' : 'No'}</li>
+          <li>✅ Unsplash service configured: {mounted ? (unsplashService.isConfigured() ? 'Yes' : 'No') : 'Loading...'}</li>
           <li>✅ Access key present: {mounted ? (process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY ? 'Yes' : 'Server-side only') : 'Loading...'}</li>
           <li>✅ SDK installed: Yes (unsplash-js)</li>
         </ul>
