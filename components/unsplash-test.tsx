@@ -7,6 +7,11 @@ export function UnsplashTest() {
   const [images, setImages] = useState<UnsplashPhoto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const testSearch = async (query: string) => {
     setLoading(true);
@@ -143,7 +148,7 @@ export function UnsplashTest() {
         <h3 className="font-semibold mb-2">Integration Status:</h3>
         <ul className="text-sm space-y-1">
           <li>✅ Unsplash service configured: {unsplashService.isConfigured() ? 'Yes' : 'No'}</li>
-          <li>✅ Access key present: {process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY ? 'Yes' : 'Server-side only'}</li>
+          <li>✅ Access key present: {mounted ? (process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY ? 'Yes' : 'Server-side only') : 'Loading...'}</li>
           <li>✅ SDK installed: Yes (unsplash-js)</li>
         </ul>
       </div>
