@@ -17,8 +17,9 @@ import {
 } from "@/lib/prompts";
 // import MY_TOKEN_KEY from "@/lib/get-cookie-name";
 import { Page } from "@/types";
-import { extractBusinessContext, detectIndustry } from "@/lib/image-service";
-// import { detectIndustryFromContext, generateIndustryImageSet } from "@/lib/smart-image-service";
+import { extractBusinessContext, detectIndustry, generateImageUrls } from "@/lib/image-service";
+import { type BusinessContext } from "@/lib/unsplash-service";
+import { trackGeneration, getRecommendations } from "@/lib/analytics-service";
 
 // Rate limiting with automatic cleanup
 const ipAddresses = new Map();
@@ -217,68 +218,59 @@ export async function POST(request: NextRequest) {
   const DEFAULT_PROVIDER = PROVIDERS.ollama;
   const selectedProvider = PROVIDERS[actualProvider as keyof typeof PROVIDERS] ?? DEFAULT_PROVIDER;
 
-  // Smart industry detection for better image matching
+  // Smart industry detection and business context extraction
+  let businessContext: BusinessContext;
   let detectedIndustry = 'technology';
-  
+
   if (redesignMarkdown) {
     // For redesigns, detect from the URL and markdown content
-    const urlMatch = redesignMarkdown.match(/https?:\/\/[^\s]+/);
-    const url = urlMatch ? urlMatch[0] : '';
-    detectedIndustry = detectIndustry(url, redesignMarkdown);
+    detectedIndustry = detectIndustry(redesignMarkdown);
+    businessContext = {
+      industry: detectedIndustry,
+      style: 'modern'
+    };
   } else if (prompt) {
     // For new sites, extract from prompt
-    const businessContext = extractBusinessContext(prompt);
-    detectedIndustry = businessContext.industry;
+    const extracted = extractBusinessContext(prompt);
+    detectedIndustry = extracted.industry;
+    businessContext = {
+      industry: extracted.industry,
+      services: extracted.services || [],
+      style: 'modern',
+      companyName: extracted.businessName
+    };
+  } else {
+    businessContext = {
+      industry: 'technology',
+      style: 'modern'
+    };
   }
-  
-  // Get the industry-specific images from PEXELS_IMAGES
-  const PEXELS_IMAGES = {
-    hvac: {
-      hero: 'https://images.pexels.com/photos/3964341/pexels-photo-3964341.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080',
-      service1: 'https://images.pexels.com/photos/3964704/pexels-photo-3964704.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service2: 'https://images.pexels.com/photos/5463576/pexels-photo-5463576.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service3: 'https://images.pexels.com/photos/7641474/pexels-photo-7641474.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service4: 'https://images.pexels.com/photos/8853505/pexels-photo-8853505.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service5: 'https://images.pexels.com/photos/5691604/pexels-photo-5691604.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service6: 'https://images.pexels.com/photos/1854037/pexels-photo-1854037.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      about: 'https://images.pexels.com/photos/5691625/pexels-photo-5691625.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800',
-      gallery1: 'https://images.pexels.com/photos/3201763/pexels-photo-3201763.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',
-      gallery2: 'https://images.pexels.com/photos/7031712/pexels-photo-7031712.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',
-      gallery3: 'https://images.pexels.com/photos/4792485/pexels-photo-4792485.jpeg?auto=compress&cs=tinysrgb&w=600&h=400'
-    },
-    construction: {
-      hero: 'https://images.pexels.com/photos/585419/pexels-photo-585419.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080',
-      service1: 'https://images.pexels.com/photos/2219024/pexels-photo-2219024.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service2: 'https://images.pexels.com/photos/1216589/pexels-photo-1216589.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service3: 'https://images.pexels.com/photos/3760613/pexels-photo-3760613.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service4: 'https://images.pexels.com/photos/1109541/pexels-photo-1109541.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service5: 'https://images.pexels.com/photos/2219024/pexels-photo-2219024.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      about: 'https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800',
-      gallery1: 'https://images.pexels.com/photos/544965/pexels-photo-544965.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',
-      gallery2: 'https://images.pexels.com/photos/1249611/pexels-photo-1249611.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',
-      gallery3: 'https://images.pexels.com/photos/416405/pexels-photo-416405.jpeg?auto=compress&cs=tinysrgb&w=600&h=400'
-    },
-    default: {
-      hero: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080',
-      service1: 'https://images.pexels.com/photos/3182746/pexels-photo-3182746.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service2: 'https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service3: 'https://images.pexels.com/photos/3182773/pexels-photo-3182773.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service4: 'https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      service5: 'https://images.pexels.com/photos/3182812/pexels-photo-3182812.jpeg?auto=compress&cs=tinysrgb&w=800&h=600',
-      about: 'https://images.pexels.com/photos/3184287/pexels-photo-3184287.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800',
-      gallery1: 'https://images.pexels.com/photos/3183197/pexels-photo-3183197.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',
-      gallery2: 'https://images.pexels.com/photos/3182835/pexels-photo-3182835.jpeg?auto=compress&cs=tinysrgb&w=600&h=400',
-      gallery3: 'https://images.pexels.com/photos/3184298/pexels-photo-3184298.jpeg?auto=compress&cs=tinysrgb&w=600&h=400'
-    }
-  };
-  
-  // Get industry images or default
-  const imageSet = PEXELS_IMAGES[detectedIndustry] || PEXELS_IMAGES.default;
-  
-  // Create image list for the prompt
-  const imageList = Object.entries(imageSet)
-    .map(([key, url]) => `${key}: ${url}`)
-    .join('\n');
+
+  // Generate contextual images using the new Unsplash integration
+  let imagePromptSection = '';
+  try {
+    const [heroImages, serviceImages, aboutImages] = await Promise.all([
+      generateImageUrls(detectedIndustry, 'hero', 1, 1920, 1080, businessContext),
+      generateImageUrls(detectedIndustry, 'services', 6, 800, 600, businessContext),
+      generateImageUrls(detectedIndustry, 'about', 2, 1200, 800, businessContext)
+    ]);
+
+    // Format images for the AI prompt
+    const imageList = [
+      `hero: ${heroImages[0]?.url || 'https://picsum.photos/1920/1080'}`,
+      ...serviceImages.map((img, i) => `service${i + 1}: ${img?.url || `https://picsum.photos/800/600?random=${i}`}`),
+      ...aboutImages.map((img, i) => `${i === 0 ? 'about' : `gallery${i}`}: ${img?.url || `https://picsum.photos/1200/800?random=${i + 10}`}`)
+    ].join('\n');
+
+    imagePromptSection = `\n\nUSE THESE EXACT IMAGES FOR EACH SECTION (DO NOT REUSE THE SAME IMAGE):\n${imageList}\n\nIMPORTANT IMAGE RULES:\n- Use DIFFERENT images for each section\n- Hero section MUST use the 'hero' image\n- Each service card MUST use a different service image (service1, service2, etc.)\n- About section MUST use the 'about' image\n- NEVER use the same image URL twice`;
+  } catch (error) {
+    console.warn('Failed to generate Unsplash images, using fallback:', error);
+    // Fallback to basic placeholder images
+    const fallbackImages = Array.from({ length: 8 }, (_, i) =>
+      `image${i + 1}: https://picsum.photos/${i === 0 ? '1920/1080' : '800/600'}?random=${i}`
+    ).join('\n');
+    imagePromptSection = `\n\nUSE THESE IMAGES:\n${fallbackImages}`;
+  }
   
   // Check if redesign and extract logo URL
   let logoInstruction = '';
@@ -292,8 +284,70 @@ export async function POST(request: NextRequest) {
     }
   }
   
+  // Add random design variation selection
+  const designVariations = {
+    colorSchemes: [
+      'Deep navy (#1e293b) with bright blue (#3b82f6) accents',
+      'Rich brown (#92400e) with orange (#ea580c) highlights',
+      'Dark gray (#374151) with lime green (#65a30d) accents',
+      'Deep purple (#581c87) with violet (#8b5cf6) highlights',
+      'Charcoal (#1f2937) with teal (#0d9488) accents',
+      'Dark red (#991b1b) with bright orange (#f97316) highlights',
+      'Steel blue (#1e40af) with cyan (#06b6d4) accents',
+      'Forest green (#166534) with emerald (#10b981) highlights'
+    ],
+    layoutStyles: [
+      'Modern minimalist with generous white space',
+      'Bold and dramatic with strong contrasts',
+      'Geometric shapes and angular design elements',
+      'Organic curves and flowing lines',
+      'Industrial/tech aesthetic with sharp edges',
+      'Elegant and sophisticated with subtle details',
+      'Playful with bright accents and gradients',
+      'Professional corporate style'
+    ],
+    animations: [
+      'Subtle fade-in on scroll effects',
+      'Micro-interactions on hover and click',
+      'Parallax background elements',
+      'Staggered animation reveals',
+      'Smooth slide transitions',
+      'Elastic bounce effects',
+      'Morphing shape animations',
+      'Particle or dot animations'
+    ]
+  };
+
+  // Get intelligent recommendations based on historical data
+  const recommendations = getRecommendations(detectedIndustry);
+
+  // Use recommendations if confidence is high, otherwise use random selection
+  let selectedColor, selectedLayout, selectedAnimation;
+
+  if (recommendations.confidence > 0.7) {
+    // High confidence - use recommendations
+    selectedColor = recommendations.recommendedColor;
+    selectedLayout = recommendations.recommendedLayout;
+    selectedAnimation = recommendations.recommendedAnimation;
+  } else {
+    // Low confidence - use random selection but bias towards recommendations
+    const useRecommendation = Math.random() < 0.5; // 50% chance to use recommendation
+
+    selectedColor = useRecommendation
+      ? recommendations.recommendedColor
+      : designVariations.colorSchemes[Math.floor(Math.random() * designVariations.colorSchemes.length)];
+
+    selectedLayout = useRecommendation
+      ? recommendations.recommendedLayout
+      : designVariations.layoutStyles[Math.floor(Math.random() * designVariations.layoutStyles.length)];
+
+    selectedAnimation = useRecommendation
+      ? recommendations.recommendedAnimation
+      : designVariations.animations[Math.floor(Math.random() * designVariations.animations.length)];
+  }
+
   // Enhance the prompt with industry and image guidance
-  const enhancedPrompt = `${prompt || ''}\n\nCRITICAL: This is a ${detectedIndustry} business.${logoInstruction}\n\nUSE THESE EXACT IMAGES FOR EACH SECTION (DO NOT REUSE THE SAME IMAGE):\n${imageList}\n\nIMPORTANT IMAGE RULES:\n- Use DIFFERENT images for each section\n- Hero section MUST use the 'hero' image\n- Each service card MUST use a different service image (service1, service2, etc.)\n- About section MUST use the 'about' image\n- Gallery MUST use gallery1, gallery2, gallery3 images\n- NEVER use the same image URL twice\n\nMAKE SURE TO:\n1. Use typing animation for H1 headlines with TypeIt.js\n2. Include a multi-step form with progress indicators\n3. Use modern varied layouts (bento grid, split screen, etc.)\n4. Add FAQ section with accordion\n5. Include service areas with expandable sub-areas\n6. Use ALL provided images (not just one)`;
+  const enhancedPrompt = `${prompt || ''}\n\nCRITICAL: This is a ${detectedIndustry} business.${logoInstruction}${imagePromptSection}\n\nDESIGN REQUIREMENTS FOR THIS GENERATION:\n- Color scheme: ${selectedColor}\n- Layout style: ${selectedLayout}\n- Animation style: ${selectedAnimation}\n\nMAKE SURE TO:\n1. Use typing animation for H1 headlines with TypeIt.js\n2. Include a multi-step form with progress indicators\n3. Use modern varied layouts (bento grid, split screen, etc.)\n4. Add FAQ section with accordion\n5. Include service areas with expandable sub-areas\n6. Use ALL provided images (not just one)\n7. All images should be relevant to the ${detectedIndustry} industry\n8. Apply the selected design variations consistently throughout\n9. Ensure each generation looks distinctly different from previous ones`;
   
   const rewrittenPrompt = enhancedPrompt;
 
@@ -311,6 +365,18 @@ export async function POST(request: NextRequest) {
     });
 
     (async () => {
+      // Track the generation for analytics
+      const sessionId = trackGeneration({
+        industry: detectedIndustry,
+        prompt: enhancedPrompt,
+        model: selectedModel.value,
+        layoutVariation: selectedLayout,
+        colorScheme: selectedColor,
+        animationStyle: selectedAnimation
+      });
+
+      console.log(`Generation tracked with session ID: ${sessionId}`);
+
       // let completeResponse = "";
       try {
         // Determine which API to call based on provider

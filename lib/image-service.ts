@@ -349,19 +349,59 @@ const PEXELS_IMAGES: Record<string, Record<string, string>> = {
 };
 
 /**
- * Generates multiple image URLs for a component
+ * Generates multiple image URLs for a component using Unsplash or Pexels fallback
  */
-export function generateImageUrls(
+export async function generateImageUrls(
   industry: string,
   component: string,
   count: number = 3,
   width: number = 1920,
-  height: number = 1080
-): StockImage[] {
+  height: number = 1080,
+  businessContext?: BusinessContext
+): Promise<StockImage[]> {
   const images: StockImage[] = [];
-  
-  // Get pre-verified Pexels images for the industry
-  const industryImages = PEXELS_IMAGES[industry] || PEXELS_IMAGES.default;
+
+  // Try Unsplash first if configured
+  if (unsplashService.isConfigured() && businessContext) {
+    try {
+      const imageCollection = await unsplashService.getImagesForBusiness(businessContext);
+
+      if (component === 'hero' && imageCollection.hero.length > 0) {
+        const photo = imageCollection.hero[0];
+        images.push({
+          url: unsplashService.getCustomSizedImageUrl(photo, width, height),
+          alt: photo.alt_description || `Professional ${industry} image`,
+          credit: `Photo by ${photo.user.name} on Unsplash`
+        });
+        // Track download for attribution compliance
+        await unsplashService.trackDownload(photo);
+      } else if ((component === 'services' || component === 'service') && imageCollection.gallery.length > 0) {
+        for (let i = 0; i < Math.min(count, imageCollection.gallery.length); i++) {
+          const photo = imageCollection.gallery[i];
+          images.push({
+            url: unsplashService.getCustomSizedImageUrl(photo, width, height),
+            alt: photo.alt_description || `${industry} service image`,
+            credit: `Photo by ${photo.user.name} on Unsplash`
+          });
+          await unsplashService.trackDownload(photo);
+        }
+      } else if (component === 'about' && imageCollection.gallery.length > 3) {
+        const photo = imageCollection.gallery[3];
+        images.push({
+          url: unsplashService.getCustomSizedImageUrl(photo, width, height),
+          alt: photo.alt_description || `About ${industry} business`,
+          credit: `Photo by ${photo.user.name} on Unsplash`
+        });
+        await unsplashService.trackDownload(photo);
+      }
+    } catch (error) {
+      console.warn('Unsplash failed, falling back to Pexels:', error);
+    }
+  }
+
+  // Fallback to Pexels if Unsplash didn't provide enough images
+  if (images.length < count) {
+    const industryImages = PEXELS_IMAGES[industry] || PEXELS_IMAGES.default;
   
   if (component === 'hero' && industryImages.hero) {
     images.push({
@@ -408,26 +448,28 @@ export function generateImageUrls(
       credit: 'Picsum'
     });
   }
-  
+  }
+
   return images;
 }
 
 /**
  * Generates placeholder image HTML with proper attribution
  */
-export function generateImageHTML(
+export async function generateImageHTML(
   industry: string,
   component: string,
   className: string = '',
   width: number = 1920,
-  height: number = 1080
-): string {
-  const images = generateImageUrls(industry, component, 1, width, height);
+  height: number = 1080,
+  businessContext?: BusinessContext
+): Promise<string> {
+  const images = await generateImageUrls(industry, component, 1, width, height, businessContext);
   const image = images[0];
-  
-  return `<img 
-    src="${image.url}" 
-    alt="${image.alt}" 
+
+  return `<img
+    src="${image.url}"
+    alt="${image.alt}"
     class="${className}"
     loading="lazy"
     data-credit="${image.credit}"
@@ -437,70 +479,66 @@ export function generateImageHTML(
 /**
  * Generates CSS background image style
  */
-export function generateBackgroundImageStyle(
+export async function generateBackgroundImageStyle(
   industry: string,
   component: string,
   width: number = 1920,
-  height: number = 1080
-): string {
-  const images = generateImageUrls(industry, component, 1, width, height);
+  height: number = 1080,
+  businessContext?: BusinessContext
+): Promise<string> {
+  const images = await generateImageUrls(industry, component, 1, width, height, businessContext);
   const url = images[0].url;
-  
+
   return `background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${url}');`;
 }
 
 /**
  * Helper to inject images into HTML template
  */
-export function injectImagesIntoHTML(
+export async function injectImagesIntoHTML(
   html: string,
   industry: string,
-  businessName?: string
-): string {
-  // Replace placeholder comments with actual images
+  businessName?: string,
+  businessContext?: BusinessContext
+): Promise<string> {
   let updatedHTML = html;
-  
+
   // Hero image placeholders
-  updatedHTML = updatedHTML.replace(
-    /<!-- IMAGE_HERO -->/g,
-    generateImageHTML(industry, 'hero', 'w-full h-full object-cover')
-  );
-  
-  // Service card images
-  updatedHTML = updatedHTML.replace(
-    /<!-- IMAGE_SERVICE_(\d+) -->/g,
-    (match, num) => generateImageHTML(industry, 'services', 'w-full h-48 object-cover rounded-t-lg')
-  );
-  
+  const heroHTML = await generateImageHTML(industry, 'hero', 'w-full h-full object-cover', 1920, 1080, businessContext);
+  updatedHTML = updatedHTML.replace(/<!-- IMAGE_HERO -->/g, heroHTML);
+
+  // Service card images - replace each one individually
+  const serviceMatches = [...updatedHTML.matchAll(/<!-- IMAGE_SERVICE_(\d+) -->/g)];
+  for (const match of serviceMatches) {
+    const serviceHTML = await generateImageHTML(industry, 'services', 'w-full h-48 object-cover rounded-t-lg', 800, 600, businessContext);
+    updatedHTML = updatedHTML.replace(match[0], serviceHTML);
+  }
+
   // About section images
-  updatedHTML = updatedHTML.replace(
-    /<!-- IMAGE_ABOUT -->/g,
-    generateImageHTML(industry, 'about', 'w-full h-full object-cover rounded-lg')
-  );
-  
+  const aboutHTML = await generateImageHTML(industry, 'about', 'w-full h-full object-cover rounded-lg', 1200, 800, businessContext);
+  updatedHTML = updatedHTML.replace(/<!-- IMAGE_ABOUT -->/g, aboutHTML);
+
   // Portfolio/gallery images
-  updatedHTML = updatedHTML.replace(
-    /<!-- IMAGE_PORTFOLIO_(\d+) -->/g,
-    (match, num) => generateImageHTML(industry, 'portfolio', 'w-full h-64 object-cover rounded-lg')
-  );
-  
+  const portfolioMatches = [...updatedHTML.matchAll(/<!-- IMAGE_PORTFOLIO_(\d+) -->/g)];
+  for (const match of portfolioMatches) {
+    const portfolioHTML = await generateImageHTML(industry, 'portfolio', 'w-full h-64 object-cover rounded-lg', 800, 600, businessContext);
+    updatedHTML = updatedHTML.replace(match[0], portfolioHTML);
+  }
+
   // Team member placeholders
-  updatedHTML = updatedHTML.replace(
-    /<!-- IMAGE_TEAM_(\d+) -->/g,
-    (match, num) => generateImageHTML(industry, 'team', 'w-32 h-32 rounded-full object-cover mx-auto')
-  );
-  
+  const teamMatches = [...updatedHTML.matchAll(/<!-- IMAGE_TEAM_(\d+) -->/g)];
+  for (const match of teamMatches) {
+    const teamHTML = await generateImageHTML(industry, 'team', 'w-32 h-32 rounded-full object-cover mx-auto', 400, 400, businessContext);
+    updatedHTML = updatedHTML.replace(match[0], teamHTML);
+  }
+
   // Background image styles
-  updatedHTML = updatedHTML.replace(
-    /<!-- BG_IMAGE_HERO -->/g,
-    generateBackgroundImageStyle(industry, 'hero')
-  );
-  
-  updatedHTML = updatedHTML.replace(
-    /<!-- BG_IMAGE_CTA -->/g,
-    generateBackgroundImageStyle(industry, 'cta')
-  );
-  
+  const heroBgStyle = await generateBackgroundImageStyle(industry, 'hero', 1920, 1080, businessContext);
+  updatedHTML = updatedHTML.replace(/<!-- BG_IMAGE_HERO -->/g, heroBgStyle);
+
+  const ctaBgStyle = await generateBackgroundImageStyle(industry, 'cta', 1920, 1080, businessContext);
+  updatedHTML = updatedHTML.replace(/<!-- BG_IMAGE_CTA -->/g, ctaBgStyle);
+
   return updatedHTML;
 }
 

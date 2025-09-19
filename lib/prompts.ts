@@ -12,13 +12,43 @@ export const UPDATE_PAGE_END = " >>>>>>> UPDATE_PAGE_END";
 // TODO REVIEW LINK. MAYBE GO BACK TO SANDPACK.
 // FIX PREVIEW LINK NOT WORKING ONCE THE SITE IS DEPLOYED.
 
-export const PROMPT_FOR_IMAGE_GENERATION = `For images, use Picsum Photos which provides FREE, high-quality placeholder images:
+export const PROMPT_FOR_IMAGE_GENERATION = `CRITICAL IMAGE REQUIREMENTS:
 
-Format: https://picsum.photos/[width]/[height]?random=[unique_number]
+**STEP 1: Get Contextual Images from Unsplash**
+Before generating the website, you MUST first call our image API to get high-quality, contextual images:
 
-OR use Pexels with direct image URLs (these are verified working images):
+Call: POST /api/get-images
+Body: {
+  "industry": "[extracted from user prompt]",
+  "services": ["service1", "service2", ...],
+  "style": "modern|professional|creative|minimal",
+  "location": "[if mentioned]",
+  "companyName": "[if mentioned]"
+}
 
-IMPORTANT: Use these EXACT image URLs based on the industry:
+This returns: {
+  "success": true,
+  "images": {
+    "hero": [{ "url": "...", "alt": "...", "attribution": {...} }],
+    "services": [{ "url": "...", "alt": "..." }],
+    "about": [{ "url": "...", "alt": "..." }],
+    "backgrounds": [{ "url": "...", "alt": "..." }]
+  }
+}
+
+**STEP 2: Use Returned Images in Website**
+- Use images.hero[0].url for main hero section
+- Use images.services[] for service cards (one per service)
+- Use images.about[] for about/team sections
+- Use images.backgrounds[] for section backgrounds
+
+**STEP 3: Attribution (REQUIRED)**
+For each image used, add attribution in footer:
+<div class="text-xs text-gray-400">
+  Photo by <a href="[attribution.photographerUrl]">[attribution.photographerName]</a> on <a href="[attribution.unsplashUrl]">Unsplash</a>
+</div>
+
+**FALLBACK: If API fails, use these verified Pexels URLs based on industry:**
 
 **Restaurant/Food Business:**
 - Hero: https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080
