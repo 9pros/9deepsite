@@ -388,8 +388,8 @@ export async function POST(request: NextRequest) {
           : (selectedProvider.endpoint || process.env.OLLAMA_API_URL || "http://localhost:11434");
         
         const apiKey = isLlamaProvider
-          ? (selectedProvider.apiKey || process.env.LLAMA_API_KEY)
-          : (selectedProvider.apiKey || process.env.OLLAMA_API_KEY);
+          ? ((selectedProvider as any).apiKey || process.env.LLAMA_API_KEY)
+          : (process.env.OLLAMA_API_KEY);
         
         // Prepare headers
         const apiHeaders: HeadersInit = {

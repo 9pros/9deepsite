@@ -183,8 +183,8 @@ export const SMART_IMAGE_SEARCHES = {
  * Uses Unsplash Source for direct image URLs (no API key needed)
  */
 export function getSmartImageUrl(industry: string, imageType: string, index: number = 1): string {
-  const searches = SMART_IMAGE_SEARCHES[industry] || SMART_IMAGE_SEARCHES['technology'];
-  let searchTerm = searches[imageType] || searches.hero;
+  const searches = (SMART_IMAGE_SEARCHES as any)[industry] || SMART_IMAGE_SEARCHES['technology'];
+  let searchTerm = (searches as any)[imageType] || searches.hero;
   
   // Handle gallery array - pick based on index
   if (Array.isArray(searchTerm)) {

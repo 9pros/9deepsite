@@ -110,6 +110,7 @@ export let MODELS = DEFAULT_MODELS;
 export const updateModels = (newModels: Array<{
   provider?: string;
   value?: string;
+  label?: string;
   isThinker?: boolean;
   [key: string]: unknown;
 }>) => {
@@ -120,7 +121,8 @@ export const updateModels = (newModels: Array<{
                        model.value?.includes('llama3.2');
 
     return {
-      ...model,
+      value: model.value || '',
+      label: model.label || model.value || 'Unknown Model',
       providers: [model.provider || (isLlamaModel ? "llama" : "ollama")],
       autoProvider: model.provider || (isLlamaModel ? "llama" : "ollama"),
       // Preserve isThinker flag if present, or check for DeepSeek V3 models

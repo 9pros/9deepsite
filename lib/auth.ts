@@ -12,13 +12,8 @@ Promise<UserResponse | NextResponse<unknown> | undefined> => {
     id: "local-user",
     name: "Local User",
     fullname: "Local User",
-    email: "user@local",
-    emailVerified: true,
     avatarUrl: "/api/placeholder/32/32",
-    websiteUrl: "",
-    canPay: false,
     isPro: false,
-    orgs: [],
     token: "local-token",
   };
 
