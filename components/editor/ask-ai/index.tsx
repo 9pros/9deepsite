@@ -114,20 +114,18 @@ export function AskAI({
     return MODELS.find((m: { value: string }) => m.value === model);
   }, [model]);
 
-  // Handle auto-start functionality (DISABLED for manual model testing)
+  // Handle auto-start functionality
   useEffect(() => {
     if (autostart && initialPrompt && !isAiWorking) {
-      // Set the prompt and model but don't auto-submit
+      // Set the prompt and model for auto-generation
       setPrompt(initialPrompt);
 
       // Use provided model or default to deepseek-v3.1:671b for lead gen
       const modelToUse = initialModel || 'deepseek-v3.1:671b';
       setModel(modelToUse);
 
-      // Don't auto-start - let user manually test different models
-      console.log('Auto-start disabled for model testing. Prompt and model set but not submitted.');
-
-      /* DISABLED AUTO-SUBMISSION - uncomment to re-enable
+      // Auto-start AI generation
+      console.log('Auto-starting generation with model:', modelToUse);
       // If there's a URL, it's a redesign flow
       if (initialUrl) {
         // Trigger redesign with URL
@@ -155,19 +153,18 @@ export function AskAI({
             console.error('Failed to trigger redesign:', error);
             // Fallback to regular prompt
             setTimeout(() => {
-              callAi();
+              callAi(initialPrompt);
             }, 500);
           }
         };
 
         triggerRedesign();
       } else {
-        // Regular prompt flow - just call AI
+        // Regular prompt flow - call AI with the initial prompt
         setTimeout(() => {
-          callAi();
+          callAi(initialPrompt);
         }, 500);
       }
-      */
     }
   }, [autostart, initialPrompt, initialUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
