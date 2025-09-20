@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, ArrowRight, ArrowLeft, Check, Sparkles, Globe, Zap } from 'lucide-react';
+import { X, ArrowRight, ArrowLeft, Check, Sparkles, Globe, Zap, Upload, Palette, Target, Users, Clock, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { industries, servicesByIndustry, states } from '@/lib/lead-gen-data';
 import { useRouter } from 'next/navigation';
@@ -20,6 +20,30 @@ interface FormData {
     lastName: string;
     email: string;
     phone: string;
+  };
+  branding: {
+    logoFile?: File;
+    logoUrl?: string;
+    primaryColor: string;
+    secondaryColor: string;
+    hasExistingBranding: boolean;
+  };
+  websiteGoals: {
+    primaryGoal: string;
+    targetAudience: string;
+    callToAction: string;
+    specialFeatures: string[];
+  };
+  businessDetails: {
+    yearsInBusiness: string;
+    teamSize: string;
+    businessHours: string;
+    socialMediaLinks: {
+      facebook?: string;
+      instagram?: string;
+      linkedin?: string;
+      twitter?: string;
+    };
   };
 }
 
@@ -42,6 +66,23 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
       lastName: '',
       email: '',
       phone: ''
+    },
+    branding: {
+      primaryColor: '#3B82F6',
+      secondaryColor: '#8B5CF6',
+      hasExistingBranding: false
+    },
+    websiteGoals: {
+      primaryGoal: '',
+      targetAudience: '',
+      callToAction: '',
+      specialFeatures: []
+    },
+    businessDetails: {
+      yearsInBusiness: '',
+      teamSize: '',
+      businessHours: '',
+      socialMediaLinks: {}
     }
   });
 
@@ -54,19 +95,19 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
     }
   }, [formData.industry]);
 
-  const totalSteps = formData.projectType === 'redesign' ? 4 : 6;
+  const totalSteps = formData.projectType === 'redesign' ? 7 : 9;
 
   const handleNext = () => {
     if (validateCurrentStep()) {
       if (formData.projectType === 'redesign') {
-        // Redesign flow: 1 -> 2 -> 3 (service areas) -> 4 (contact)
+        // Redesign flow: 1 -> 2 (URL) -> 3 (service areas) -> 4 (branding) -> 5 (goals) -> 6 (business details) -> 7 (contact)
         if (currentStep === 2) {
           setCurrentStep(3); // Go to service areas
         } else {
           setCurrentStep(currentStep + 1);
         }
       } else {
-        // New website flow: normal progression
+        // New website flow: 1 -> 2 (company) -> 3 (industry) -> 4 (services) -> 5 (service areas) -> 6 (branding) -> 7 (goals) -> 8 (business details) -> 9 (contact)
         setCurrentStep(currentStep + 1);
       }
     }
@@ -93,7 +134,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
       case 1:
         return formData.projectType !== null;
       case 2:
-        return formData.projectType === 'redesign' 
+        return formData.projectType === 'redesign'
           ? formData.websiteUrl && formData.websiteUrl.trim() !== ''
           : formData.companyName && formData.companyName.trim() !== '';
       case 3:
@@ -102,21 +143,38 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
           ? formData.serviceAreas.some(area => area.city && area.state)
           : formData.industry && formData.industry !== '';
       case 4:
-        // For redesign: contact info, For new: services
+        // For redesign: branding, For new: services
         if (formData.projectType === 'redesign') {
-          const { firstName, lastName, email, phone } = formData.contactInfo;
-          return firstName && lastName && email && phone && 
-                 /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+          return true; // Branding is optional but step exists
         } else {
           return formData.services.length > 0 || formData.customServices.length > 0;
         }
       case 5:
-        // Only for new: service areas
-        return formData.serviceAreas.some(area => area.city && area.state);
+        // For redesign: goals, For new: service areas
+        if (formData.projectType === 'redesign') {
+          return formData.websiteGoals.primaryGoal && formData.websiteGoals.targetAudience;
+        } else {
+          return formData.serviceAreas.some(area => area.city && area.state);
+        }
       case 6:
+        // For redesign: business details, For new: branding
+        return true; // Both are optional but steps exist
+      case 7:
+        // For redesign: contact info, For new: goals
+        if (formData.projectType === 'redesign') {
+          const { firstName, lastName, email, phone } = formData.contactInfo;
+          return firstName && lastName && email && phone &&
+                 /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        } else {
+          return formData.websiteGoals.primaryGoal && formData.websiteGoals.targetAudience;
+        }
+      case 8:
+        // Only for new: business details
+        return true; // Optional
+      case 9:
         // Only for new: contact info
         const { firstName, lastName, email, phone } = formData.contactInfo;
-        return firstName && lastName && email && phone && 
+        return firstName && lastName && email && phone &&
                /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       default:
         return false;
@@ -131,7 +189,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
   };
 
   const generatePrompt = () => {
-    const { projectType, websiteUrl, companyName, industry, services, customServices, serviceAreas } = formData;
+    const { projectType, websiteUrl, companyName, industry, services, customServices, serviceAreas, branding, websiteGoals, businessDetails } = formData;
     
     let prompt = '';
     
@@ -161,7 +219,18 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
         prompt += `They serve the following areas: ${areas}. `;
       }
       
-      prompt += `Create an AWARD-WINNING, CONVERSION-FOCUSED website with: 
+      // Add website goals and target audience
+      if (websiteGoals.primaryGoal) {
+        prompt += `PRIMARY GOAL: ${websiteGoals.primaryGoal}. `;
+      }
+      if (websiteGoals.targetAudience) {
+        prompt += `TARGET AUDIENCE: ${websiteGoals.targetAudience}. `;
+      }
+      if (websiteGoals.callToAction) {
+        prompt += `MAIN CALL TO ACTION: ${websiteGoals.callToAction}. `;
+      }
+
+      prompt += `Create an AWARD-WINNING, CONVERSION-FOCUSED website with:
       1) Hero section with TYPING ANIMATION rotating multiple H1 headlines
       2) Multi-step conversion form for lead capture
       3) Service areas section with expandable sub-areas (cities/neighborhoods)
@@ -176,15 +245,54 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
       12) Process timeline
       13) Multiple CTAs throughout
       14) Sticky header with phone number
-      15) Floating WhatsApp button
+      15) Floating WhatsApp button`;
+
+      // Add special features if specified
+      if (websiteGoals.specialFeatures.length > 0) {
+        prompt += `
+      16) Special features: ${websiteGoals.specialFeatures.join(', ')}`;
+      }
+
+      prompt += `
       Make it mobile-responsive, SEO-optimized, with smooth animations and parallax effects.`;
     }
     
+    // Add branding information
+    prompt += ` BRANDING REQUIREMENTS: `;
+    if (branding.hasExistingBranding && branding.logoUrl) {
+      prompt += `Use the provided logo image. `;
+    }
+    prompt += `Use ${branding.primaryColor} as the primary brand color and ${branding.secondaryColor} as the secondary color throughout the design. `;
+    prompt += `Create a cohesive color scheme that reflects professionalism and trustworthiness. `;
+
+    // Add business details
+    if (businessDetails.yearsInBusiness) {
+      prompt += `The company has been in business for ${businessDetails.yearsInBusiness}. `;
+    }
+    if (businessDetails.teamSize) {
+      prompt += `Team size: ${businessDetails.teamSize}. `;
+    }
+    if (businessDetails.businessHours) {
+      prompt += `Business hours: ${businessDetails.businessHours}. `;
+    }
+
+    // Add social media links
+    const socialLinks = businessDetails.socialMediaLinks;
+    if (socialLinks.facebook || socialLinks.instagram || socialLinks.linkedin || socialLinks.twitter) {
+      prompt += `Include social media links: `;
+      const links = [];
+      if (socialLinks.facebook) links.push('Facebook');
+      if (socialLinks.instagram) links.push('Instagram');
+      if (socialLinks.linkedin) links.push('LinkedIn');
+      if (socialLinks.twitter) links.push('Twitter');
+      prompt += `${links.join(', ')}. `;
+    }
+
     // Add specific image guidance based on industry
     const industryLabel = industries.find(i => i.value === industry)?.label?.toLowerCase();
     if (industryLabel) {
       prompt += ` CRITICAL IMAGE REQUIREMENTS: Use ONLY high-quality, professional ${industryLabel} images. `;
-      
+
       // Special handling for HVAC
       if (industry === 'hvac' || industryLabel.includes('hvac') || industryLabel.includes('heating') || industryLabel.includes('cooling')) {
         prompt += `For HVAC: Use images of AC units, furnaces, thermostats, ventilation systems, HVAC technicians at work. `;
@@ -193,7 +301,7 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
         prompt += `For the hero section, use impressive ${industryLabel} imagery. `;
         prompt += `For service cards, use relevant ${industryLabel} service images. `;
       }
-      
+
       prompt += `Every image must be contextually appropriate for a ${industryLabel} business. `;
       prompt += `Include service area maps showing coverage zones with pins for each city/neighborhood served.`;
     }
@@ -265,6 +373,34 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
         serviceAreas: prev.serviceAreas.filter((_, i) => i !== index)
       }));
     }
+  };
+
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const logoUrl = URL.createObjectURL(file);
+      setFormData(prev => ({
+        ...prev,
+        branding: {
+          ...prev.branding,
+          logoFile: file,
+          logoUrl: logoUrl,
+          hasExistingBranding: true
+        }
+      }));
+    }
+  };
+
+  const handleSpecialFeatureToggle = (feature: string) => {
+    setFormData(prev => ({
+      ...prev,
+      websiteGoals: {
+        ...prev.websiteGoals,
+        specialFeatures: prev.websiteGoals.specialFeatures.includes(feature)
+          ? prev.websiteGoals.specialFeatures.filter(f => f !== feature)
+          : [...prev.websiteGoals.specialFeatures, feature]
+      }
+    }));
   };
 
   if (!isOpen) return null;
@@ -613,8 +749,379 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
                   </motion.div>
                 )}
 
-                {/* Step 4 (redesign) or Step 6 (new): Contact Info */}
+                {/* Branding Step - Step 4 (redesign) or Step 6 (new) */}
                 {((currentStep === 4 && formData.projectType === 'redesign') || (currentStep === 6 && formData.projectType === 'new')) && (
+                  <motion.div
+                    key="branding"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">Let&apos;s customize your branding</h3>
+                      <p className="text-gray-600 text-sm mt-1">Upload your logo and choose colors</p>
+                    </div>
+
+                    <div className="space-y-6">
+                      {/* Logo Upload */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Company Logo (Optional)
+                        </label>
+                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-indigo-600 transition-colors">
+                          {formData.branding.logoUrl ? (
+                            <div className="space-y-3">
+                              <img
+                                src={formData.branding.logoUrl}
+                                alt="Logo preview"
+                                className="max-h-20 mx-auto"
+                              />
+                              <button
+                                onClick={() => setFormData(prev => ({
+                                  ...prev,
+                                  branding: { ...prev.branding, logoUrl: undefined, logoFile: undefined, hasExistingBranding: false }
+                                }))}
+                                className="text-red-600 text-sm hover:text-red-700"
+                              >
+                                Remove Logo
+                              </button>
+                            </div>
+                          ) : (
+                            <div>
+                              <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                              <p className="text-gray-600 text-sm mb-3">Upload your logo</p>
+                              <label className="cursor-pointer">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleLogoUpload}
+                                  className="hidden"
+                                />
+                                <span className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-indigo-700 transition-colors">
+                                  Choose File
+                                </span>
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Color Pickers */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Primary Color
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={formData.branding.primaryColor}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                branding: { ...prev.branding, primaryColor: e.target.value }
+                              }))}
+                              className="w-12 h-12 rounded-xl border border-gray-300 cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={formData.branding.primaryColor}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                branding: { ...prev.branding, primaryColor: e.target.value }
+                              }))}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm"
+                              placeholder="#3B82F6"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Secondary Color
+                          </label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={formData.branding.secondaryColor}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                branding: { ...prev.branding, secondaryColor: e.target.value }
+                              }))}
+                              className="w-12 h-12 rounded-xl border border-gray-300 cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={formData.branding.secondaryColor}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                branding: { ...prev.branding, secondaryColor: e.target.value }
+                              }))}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm"
+                              placeholder="#8B5CF6"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Website Goals Step - Step 5 (redesign) or Step 7 (new) */}
+                {((currentStep === 5 && formData.projectType === 'redesign') || (currentStep === 7 && formData.projectType === 'new')) && (
+                  <motion.div
+                    key="goals"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">What&apos;s your website&apos;s purpose?</h3>
+                      <p className="text-gray-600 text-sm mt-1">Help us create the perfect experience</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Primary Goal *
+                        </label>
+                        <select
+                          value={formData.websiteGoals.primaryGoal}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            websiteGoals: { ...prev.websiteGoals, primaryGoal: e.target.value }
+                          }))}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                        >
+                          <option value="">Select primary goal</option>
+                          <option value="Generate leads and inquiries">Generate leads and inquiries</option>
+                          <option value="Increase online sales">Increase online sales</option>
+                          <option value="Build brand awareness">Build brand awareness</option>
+                          <option value="Provide information and resources">Provide information and resources</option>
+                          <option value="Schedule appointments or bookings">Schedule appointments or bookings</option>
+                          <option value="Showcase portfolio or work">Showcase portfolio or work</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Target Audience *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g., Homeowners aged 30-65 in suburban areas"
+                          value={formData.websiteGoals.targetAudience}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            websiteGoals: { ...prev.websiteGoals, targetAudience: e.target.value }
+                          }))}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Main Call to Action
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g., Get Free Quote, Schedule Consultation, Call Now"
+                          value={formData.websiteGoals.callToAction}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            websiteGoals: { ...prev.websiteGoals, callToAction: e.target.value }
+                          }))}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Special Features (Optional)
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            'Online Booking System',
+                            'Live Chat Support',
+                            'Customer Reviews',
+                            'Photo Gallery',
+                            'Blog/News Section',
+                            'Customer Portal',
+                            'Online Payments',
+                            'Appointment Scheduling'
+                          ].map((feature) => (
+                            <button
+                              key={feature}
+                              onClick={() => handleSpecialFeatureToggle(feature)}
+                              className={cn(
+                                "p-3 rounded-xl border text-left transition-all text-sm",
+                                formData.websiteGoals.specialFeatures.includes(feature)
+                                  ? "border-indigo-600 bg-indigo-50 text-indigo-900"
+                                  : "border-gray-200 hover:border-gray-300 text-gray-700"
+                              )}
+                            >
+                              {feature}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Business Details Step - Step 6 (redesign) or Step 8 (new) */}
+                {((currentStep === 6 && formData.projectType === 'redesign') || (currentStep === 8 && formData.projectType === 'new')) && (
+                  <motion.div
+                    key="business-details"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">Tell us about your business</h3>
+                      <p className="text-gray-600 text-sm mt-1">This helps us create more relevant content</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Years in Business
+                          </label>
+                          <select
+                            value={formData.businessDetails.yearsInBusiness}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              businessDetails: { ...prev.businessDetails, yearsInBusiness: e.target.value }
+                            }))}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                          >
+                            <option value="">Select</option>
+                            <option value="Under 1 year">Under 1 year</option>
+                            <option value="1-2 years">1-2 years</option>
+                            <option value="3-5 years">3-5 years</option>
+                            <option value="6-10 years">6-10 years</option>
+                            <option value="11-20 years">11-20 years</option>
+                            <option value="Over 20 years">Over 20 years</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Team Size
+                          </label>
+                          <select
+                            value={formData.businessDetails.teamSize}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              businessDetails: { ...prev.businessDetails, teamSize: e.target.value }
+                            }))}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                          >
+                            <option value="">Select</option>
+                            <option value="Just me">Just me</option>
+                            <option value="2-5 employees">2-5 employees</option>
+                            <option value="6-10 employees">6-10 employees</option>
+                            <option value="11-25 employees">11-25 employees</option>
+                            <option value="26-50 employees">26-50 employees</option>
+                            <option value="50+ employees">50+ employees</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Business Hours
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g., Mon-Fri 8AM-6PM, 24/7 Emergency Service"
+                          value={formData.businessDetails.businessHours}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            businessDetails: { ...prev.businessDetails, businessHours: e.target.value }
+                          }))}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 outline-none transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Social Media Links (Optional)
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex items-center gap-2">
+                            <Facebook className="w-5 h-5 text-blue-600" />
+                            <input
+                              type="url"
+                              placeholder="Facebook URL"
+                              value={formData.businessDetails.socialMediaLinks.facebook || ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                businessDetails: {
+                                  ...prev.businessDetails,
+                                  socialMediaLinks: { ...prev.businessDetails.socialMediaLinks, facebook: e.target.value }
+                                }
+                              }))}
+                              className="flex-1 px-3 py-2 rounded-xl border border-gray-300 text-sm"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Instagram className="w-5 h-5 text-pink-600" />
+                            <input
+                              type="url"
+                              placeholder="Instagram URL"
+                              value={formData.businessDetails.socialMediaLinks.instagram || ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                businessDetails: {
+                                  ...prev.businessDetails,
+                                  socialMediaLinks: { ...prev.businessDetails.socialMediaLinks, instagram: e.target.value }
+                                }
+                              }))}
+                              className="flex-1 px-3 py-2 rounded-xl border border-gray-300 text-sm"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Linkedin className="w-5 h-5 text-blue-700" />
+                            <input
+                              type="url"
+                              placeholder="LinkedIn URL"
+                              value={formData.businessDetails.socialMediaLinks.linkedin || ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                businessDetails: {
+                                  ...prev.businessDetails,
+                                  socialMediaLinks: { ...prev.businessDetails.socialMediaLinks, linkedin: e.target.value }
+                                }
+                              }))}
+                              className="flex-1 px-3 py-2 rounded-xl border border-gray-300 text-sm"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Twitter className="w-5 h-5 text-blue-500" />
+                            <input
+                              type="url"
+                              placeholder="Twitter/X URL"
+                              value={formData.businessDetails.socialMediaLinks.twitter || ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                businessDetails: {
+                                  ...prev.businessDetails,
+                                  socialMediaLinks: { ...prev.businessDetails.socialMediaLinks, twitter: e.target.value }
+                                }
+                              }))}
+                              className="flex-1 px-3 py-2 rounded-xl border border-gray-300 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Contact Info Step - Step 7 (redesign) or Step 9 (new) */}
+                {((currentStep === 7 && formData.projectType === 'redesign') || (currentStep === 9 && formData.projectType === 'new')) && (
                   <motion.div
                     key="step6"
                     initial={{ opacity: 0, x: 20 }}
