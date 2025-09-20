@@ -15,6 +15,6 @@ command = "npm run build"
 cwd = "."
 watch_dir = "."
 
-# Pages configuration
+# Pages configuration for static assets
 [pages]
-build_output_dir = ".next"
+pages_build_output_dir = ".vercel/output/static"

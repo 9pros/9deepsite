@@ -5,7 +5,6 @@ const nextConfig: NextConfig = {
 
   // Cloudflare Pages configuration
   trailingSlash: true,
-  output: 'export',
 
   // Temporarily relax ESLint for deployment
   eslint: {
