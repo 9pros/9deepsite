@@ -230,11 +230,65 @@ CRITICAL LAYOUT REQUIREMENTS - YOU MUST VARY YOUR DESIGN:
 CRITICAL MODERN WEBSITE REQUIREMENTS:
 
 1. **HERO SECTION WITH TYPING ANIMATION (REQUIRED)**:
-   - H1 headline MUST have typing animation effect
+   - H1 headline MUST have sequential typing animation effect
    - Use TypeIt.js library (include: <script src="https://unpkg.com/typeit@8.7.1/dist/index.umd.js"></script>)
-   - Multiple phrases that type, delete, and retype
-   - Initialize with: new TypeIt("#hero-headline", { strings: [array of phrases], speed: 50, loop: true, deleteSpeed: 30 }).go();
+   - Each headline types completely, pauses, then erases completely before next one starts
+   - Initialize with: new TypeIt("#hero-headline", {
+       speed: 50,
+       deleteSpeed: 30,
+       waitUntilVisible: true,
+       loop: true
+     })
+     .type("First Amazing Headline")
+     .pause(2000)
+     .delete()
+     .pause(500)
+     .type("Second Powerful Message")
+     .pause(2000)
+     .delete()
+     .pause(500)
+     .type("Third Compelling Statement")
+     .pause(2000)
+     .delete()
+     .pause(500)
+     .go();
    - Include a compelling CTA button with hover animation
+
+1.5. **HERO IMAGE SLIDER WITH AI-GENERATED IMAGES (REQUIRED)**:
+   - Create an animated image slider that synchronizes with typing animation
+   - Generate 3-5 contextual images using the text-to-image API
+   - IMPLEMENTATION: Add this JavaScript to generate and use AI images:
+     ```javascript
+     async function generateHeroImages() {
+       const headlines = ["First Amazing Headline", "Second Powerful Message", "Third Compelling Statement"];
+       const industry = "INDUSTRY_NAME"; // Replace with actual industry
+
+       for (let i = 0; i < headlines.length; i++) {
+         try {
+           const response = await fetch('/api/generate-image', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({
+               prompt: headlines[i],
+               industry: industry,
+               imageType: 'hero'
+             })
+           });
+           const result = await response.json();
+           if (result.success) {
+             document.querySelector(`#hero-image-${i}`).src = result.imageUrl;
+           }
+         } catch (error) {
+           console.error('Failed to generate image:', error);
+           // Fallback to Unsplash or default images
+         }
+       }
+     }
+     ```
+   - Use CSS transitions and JavaScript to change images on headline transitions
+   - Add subtle parallax or zoom effects during transitions
+   - Include smooth fade transitions between images (duration: 1000ms)
+   - Fallback to Unsplash images if AI generation fails
 
 2. **MULTI-STEP CONVERSION FORM (REQUIRED)**:
    - Create a modern multi-step form for lead generation

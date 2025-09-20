@@ -288,22 +288,34 @@ export default function LeadGenForm({ isOpen, onClose }: LeadGenFormProps) {
       prompt += `${links.join(', ')}. `;
     }
 
-    // Add specific image guidance based on industry
+    // Add AI-generated image guidance
     const industryLabel = industries.find(i => i.value === industry)?.label?.toLowerCase();
     if (industryLabel) {
-      prompt += ` CRITICAL IMAGE REQUIREMENTS: Use ONLY high-quality, professional ${industryLabel} images. `;
+      prompt += ` AI IMAGE GENERATION REQUIREMENTS: `;
+      prompt += `Generate custom images using the text-to-image API for maximum relevance. `;
 
-      // Special handling for HVAC
-      if (industry === 'hvac' || industryLabel.includes('hvac') || industryLabel.includes('heating') || industryLabel.includes('cooling')) {
-        prompt += `For HVAC: Use images of AC units, furnaces, thermostats, ventilation systems, HVAC technicians at work. `;
-        prompt += `DO NOT use flowers, plants, or unrelated images. `;
-      } else {
-        prompt += `For the hero section, use impressive ${industryLabel} imagery. `;
-        prompt += `For service cards, use relevant ${industryLabel} service images. `;
+      // Hero images
+      prompt += `HERO IMAGES: Use the generateHeroImages() function to create 3-5 unique hero images that match each headline. `;
+
+      // Service images
+      if (services.length > 0 || customServices.length > 0) {
+        const allServices = [...services, ...customServices];
+        prompt += `SERVICE IMAGES: Generate contextual images for these services: ${allServices.join(', ')}. `;
       }
 
-      prompt += `Every image must be contextually appropriate for a ${industryLabel} business. `;
-      prompt += `Include service area maps showing coverage zones with pins for each city/neighborhood served.`;
+      // Industry-specific guidance
+      if (industry === 'hvac' || industryLabel.includes('hvac') || industryLabel.includes('heating') || industryLabel.includes('cooling')) {
+        prompt += `HVAC INDUSTRY: Generate images of AC units, furnaces, thermostats, ventilation systems, HVAC technicians at work. `;
+        prompt += `Avoid generic stock photos - create industry-specific visuals. `;
+      } else {
+        prompt += `${industryLabel.toUpperCase()} INDUSTRY: Generate professional ${industryLabel} imagery showing services in action. `;
+      }
+
+      prompt += `FALLBACK: If AI generation fails, use Unsplash with contextually appropriate ${industryLabel} search terms. `;
+      prompt += `Include service area maps showing coverage zones with pins for each city/neighborhood served. `;
+
+      // Add the industry context for better AI generation
+      prompt += `INDUSTRY CONTEXT: "${industryLabel}" - Use this for all AI image generation calls.`;
     }
     
     return prompt;
