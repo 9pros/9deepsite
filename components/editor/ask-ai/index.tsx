@@ -91,6 +91,7 @@ export function AskAI({
   const [isFollowUp, setIsFollowUp] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [files, setFiles] = useState<string[]>(images ?? []);
+  const [redesignMarkdown, setRedesignMarkdown] = useState<string | null>(null);
 
   const {
     callAiNewProject,
@@ -114,25 +115,24 @@ export function AskAI({
     return MODELS.find((m: { value: string }) => m.value === model);
   }, [model]);
 
-  // Handle auto-start functionality
+  // Handle auto-start functionality - populate prompt but don't auto-submit
   useEffect(() => {
     if (autostart && initialPrompt && !isAiWorking) {
-      // Set the prompt and model for auto-generation
+      // Set the prompt and model for user review
       setPrompt(initialPrompt);
 
       // Use provided model or default to deepseek-v3.1:671b for lead gen
       const modelToUse = initialModel || 'deepseek-v3.1:671b';
       setModel(modelToUse);
 
-      // Auto-start AI generation
-      console.log('Auto-starting generation with model:', modelToUse);
-      // If there's a URL, it's a redesign flow
+      console.log('Auto-populated prompt for review with model:', modelToUse);
+
+      // If there's a URL, pre-fetch the redesign data but don't submit
       if (initialUrl) {
-        // Trigger redesign with URL
         const normalizedUrl = initialUrl.startsWith('http') ? initialUrl : `https://${initialUrl}`;
 
-        // Call the redesign API
-        const triggerRedesign = async () => {
+        // Pre-fetch redesign data for when user manually submits
+        const prefetchRedesign = async () => {
           try {
             const response = await fetch('/api/re-design', {
               method: 'PUT',
@@ -143,36 +143,30 @@ export function AskAI({
             if (response.ok) {
               const data = await response.json();
               if (data.markdown) {
-                // Trigger the AI with redesign markdown
-                setTimeout(() => {
-                  callAi(data.markdown);
-                }, 500);
+                // Store the markdown for when user clicks generate
+                setRedesignMarkdown(data.markdown);
+                console.log('Pre-fetched redesign data for user review');
               }
             }
           } catch (error) {
-            console.error('Failed to trigger redesign:', error);
-            // Fallback to regular prompt
-            setTimeout(() => {
-              callAi(initialPrompt);
-            }, 500);
+            console.error('Error pre-fetching redesign:', error);
           }
         };
 
-        triggerRedesign();
-      } else {
-        // Regular prompt flow - call AI with the initial prompt
-        setTimeout(() => {
-          callAi(initialPrompt);
-        }, 500);
+        prefetchRedesign();
       }
     }
   }, [autostart, initialPrompt, initialUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const callAi = async (redesignMarkdown?: string) => {
+  const callAi = async (passedRedesignMarkdown?: string) => {
     if (isAiWorking) return;
-    if (!redesignMarkdown && !prompt.trim()) return;
 
-    if (isFollowUp && !redesignMarkdown && !isSameHtml) {
+    // Use passed markdown or stored redesign markdown if available
+    const markdownToUse = passedRedesignMarkdown || redesignMarkdown;
+
+    if (!markdownToUse && !prompt.trim()) return;
+
+    if (isFollowUp && !markdownToUse && !isSameHtml) {
       // Use follow-up function for existing projects
       const selectedElementHtml = selectedElement
         ? selectedElement.outerHTML
@@ -219,7 +213,7 @@ export function AskAI({
         prompt,
         model,
         provider,
-        redesignMarkdown,
+        markdownToUse,
         handleThink,
         () => {
           setIsThinking(false);

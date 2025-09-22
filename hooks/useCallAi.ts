@@ -91,7 +91,12 @@ export const useCallAi = ({
             toast.success("AI responded successfully");
             setisAiWorking(false);
             
-            if (audio.current) audio.current.play();
+            if (audio.current) {
+              audio.current.play().catch(() => {
+                // Audio play failed - likely due to lack of user interaction
+                console.log('Audio play failed - user interaction required');
+              });
+            }
 
             const newPages = formatPages(contentResponse);
             onSuccess(newPages, prompt);
@@ -200,7 +205,12 @@ export const useCallAi = ({
               // Note: You might want to add a callback for this
             }
             
-            if (audio.current) audio.current.play();
+            if (audio.current) {
+              audio.current.play().catch(() => {
+                // Audio play failed - likely due to lack of user interaction
+                console.log('Audio play failed - user interaction required');
+              });
+            }
 
             const newPage = formatPage(contentResponse, currentPagePath);
             if (!newPage) { return { error: "api_error", message: "Failed to format page" } }
