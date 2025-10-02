@@ -9,12 +9,11 @@ name = "deepsite-main"
 pattern = "9gent.com/*"
 zone_name = "9gent.com"
 
-# Build configuration
+# Build configuration - remove cache after build to avoid 25MB limit
 [build]
-command = "npm run build"
+command = "npm run build && rm -rf .next/cache cache"
 cwd = "."
 watch_dir = "."
 
-# Pages configuration for static assets
-[pages]
-pages_build_output_dir = ".vercel/output/static"
+# Pages configuration - use .next output
+pages_build_output_dir = ".next"

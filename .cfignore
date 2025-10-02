@@ -1,0 +1,12 @@
+# Cloudflare Pages ignore file
+# Exclude large cache files from deployment
+
+# Next.js cache (generated during build)
+.next/cache/
+
+# Webpack cache
+cache/
+
+# Other build artifacts not needed
+.next/static/chunks/webpack-*
+.next/server/chunks/webpack-*
