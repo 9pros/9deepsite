@@ -1,0 +1,20 @@
+name = "deepsite-main"
+compatibility_date = "2024-01-01"
+
+[env.production]
+name = "deepsite-main"
+
+# Custom domain configuration
+[[env.production.routes]]
+pattern = "9gent.com/*"
+zone_name = "9gent.com"
+
+# Build configuration
+[build]
+command = "npm run build"
+cwd = "."
+watch_dir = "."
+
+# Pages configuration for static assets
+[pages]
+pages_build_output_dir = ".vercel/output/static"

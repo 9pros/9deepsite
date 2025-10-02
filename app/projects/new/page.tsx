@@ -1,0 +1,23 @@
+'use client';
+
+import { AppEditor } from "@/components/editor";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+function ProjectsNewContent() {
+  const searchParams = useSearchParams();
+  const prompt = searchParams.get('prompt');
+  const url = searchParams.get('url');
+  const autostart = searchParams.get('autostart') === 'true';
+  const model = searchParams.get('model');
+  
+  return <AppEditor isNew initialPrompt={prompt} initialUrl={url} autostart={autostart} initialModel={model} />;
+}
+
+export default function ProjectsNewPage() {
+  return (
+    <Suspense fallback={<AppEditor isNew />}>
+      <ProjectsNewContent />
+    </Suspense>
+  );
+}
